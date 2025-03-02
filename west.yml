@@ -1,0 +1,18 @@
+manifest:
+  self:
+    west-commands: scripts/west-commands.yml
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: main
+      import:
+        # By using name-allowlist we can clone only the modules that are
+        # strictly needed by the application.
+         name-allowlist:
+          - hal_espressif
+          - lvgl

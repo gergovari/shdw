@@ -1,0 +1,21 @@
+menu "example-application (/home/oJis/Documents/projects/zephyr/shd/shd/example-application)"
+osource "/home/oJis/Documents/projects/zephyr/shd/shd/example-application/Kconfig"
+config ZEPHYR_EXAMPLE_APPLICATION_MODULE
+	bool
+	default y
+endmenu
+menu "hal_espressif (/home/oJis/Documents/projects/zephyr/shd/shd/modules/hal/espressif)"
+osource "/home/oJis/Documents/projects/zephyr/shd/shd/modules/hal/espressif/zephyr/Kconfig"
+config ZEPHYR_HAL_ESPRESSIF_MODULE
+	bool
+	default y
+
+config ZEPHYR_HAL_ESPRESSIF_MODULE_BLOBS
+	bool
+endmenu
+menu "lvgl (/home/oJis/Documents/projects/zephyr/shd/shd/modules/lib/gui/lvgl)"
+osource "/home/oJis/Documents/projects/zephyr/shd/shd/modules/lib/gui/lvgl/zephyr/Kconfig"
+config ZEPHYR_LVGL_MODULE
+	bool
+	default y
+endmenu
