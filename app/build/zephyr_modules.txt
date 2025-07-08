@@ -1,3 +1,0 @@
-"example-application":"/home/oJis/Documents/projects/zephyr/shd/shd/example-application":"/home/oJis/Documents/projects/zephyr/shd/shd/example-application"
-"hal_espressif":"/home/oJis/Documents/projects/zephyr/shd/shd/modules/hal/espressif":"/home/oJis/Documents/projects/zephyr/shd/shd/modules/hal/espressif/zephyr"
-"lvgl":"/home/oJis/Documents/projects/zephyr/shd/shd/modules/lib/gui/lvgl":"${ZEPHYR_LVGL_CMAKE_DIR}"

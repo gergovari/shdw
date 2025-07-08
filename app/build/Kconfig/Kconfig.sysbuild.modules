@@ -1,9 +1,0 @@
-config ZEPHYR_EXAMPLE_APPLICATION_MODULE
-   bool
-   default y
-config ZEPHYR_HAL_ESPRESSIF_MODULE
-   bool
-   default y
-config ZEPHYR_LVGL_MODULE
-   bool
-   default y

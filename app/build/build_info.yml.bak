@@ -1,4 +1,0 @@
-west:
-  command: /home/oJis/Documents/projects/zephyr/shd/.venv/bin/west build -p -b esp_wrover_kit/esp32/procpu
-  topdir: /home/oJis/Documents/projects/zephyr/shd/shd
-  version: 1.3.0
