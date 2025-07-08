@@ -78,7 +78,7 @@ int main(void)
 	}
 	
 	root_screen = lv_screen_active();
-	lv_launcher_create(root_screen, app_ids, app_names, app_funcs sizeof(app_ids)/sizeof(char*));
+	lv_launcher_create(root_screen, app_ids, app_names, app_funcs, sizeof(app_ids)/sizeof(char*));
 
 	lv_run(display);
 }
