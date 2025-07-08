@@ -1,67 +1,74 @@
+#include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/display.h>
-#include <zephyr/drivers/gpio.h>
+
 #include <lvgl.h>
+#include <lvgl_input_device.h>
+
 #include <stdio.h>
 #include <string.h>
-#include <zephyr/kernel.h>
-#include <lvgl_input_device.h>
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(app);
 
-static uint32_t count;
+void lv_launcher_click_cb(lv_event_t *e) {
+	void *data = lv_event_get_user_data(e);
+	printf("%s\n", (char*)data);
+}
 
-static void lv_btn_click_callback(lv_event_t *e)
-{
-	ARG_UNUSED(e);
+void lv_launcher(void) {
+	lv_obj_t* menu = lv_menu_create(lv_screen_active());
+	lv_obj_t* cont;
+	lv_obj_t* btn;
+	lv_obj_t* label;
+	lv_obj_t* root = lv_menu_page_create(menu, NULL);
 
-	count = 0;
+	lv_obj_set_size(menu, lv_display_get_horizontal_resolution(NULL), lv_display_get_vertical_resolution(NULL));
+	lv_obj_center(menu);
+	
+	char *app_ids[] = {
+		"clock",
+		"notes",
+		"chats",
+		"weather",
+		"maps"
+	};
+	
+	for (unsigned int i = 0; i < sizeof(app_ids)/sizeof(char*); i++) {
+		cont = lv_menu_cont_create(root);
+		btn = lv_button_create(cont);
+		lv_obj_add_event_cb(btn, lv_launcher_click_cb, LV_EVENT_CLICKED, app_ids[i]);
+		label = lv_label_create(btn);
+		lv_label_set_text(label, app_ids[i]);
+	}
+
+
+	lv_menu_set_page(menu, root);
+}
+
+void lv_run(const struct device* display) {
+	lv_timer_handler();
+	display_blanking_off(display);
+
+	while (1) {
+		lv_timer_handler();
+		k_sleep(K_MSEC(10));
+	}
 }
 
 int main(void)
 {
-	char count_str[11] = {0};
-	const struct device *display_dev;
-	lv_obj_t *hello_world_label;
-	lv_obj_t *count_label;
-
-	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
-	if (!device_is_ready(display_dev)) {
-		LOG_ERR("Device not ready, aborting test");
+	const struct device* display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+	
+	printf("start\n");
+	if (!device_is_ready(display)) {
+		LOG_ERR("Display device not ready!");
 		return 0;
 	}
+	
+	lv_launcher();
 
-	if (IS_ENABLED(CONFIG_LV_Z_POINTER_INPUT)) {
-		lv_obj_t *hello_world_button;
-
-		hello_world_button = lv_button_create(lv_screen_active());
-		lv_obj_align(hello_world_button, LV_ALIGN_CENTER, 0, -15);
-		lv_obj_add_event_cb(hello_world_button, lv_btn_click_callback, LV_EVENT_CLICKED,
-				    NULL);
-		hello_world_label = lv_label_create(hello_world_button);
-	} else {
-		hello_world_label = lv_label_create(lv_screen_active());
-	}
-
-	lv_label_set_text(hello_world_label, "Hello world!");
-	lv_obj_align(hello_world_label, LV_ALIGN_CENTER, 0, 0);
-
-	count_label = lv_label_create(lv_screen_active());
-	lv_obj_align(count_label, LV_ALIGN_BOTTOM_MID, 0, 0);
-
-	lv_timer_handler();
-	display_blanking_off(display_dev);
-
-	while (1) {
-		if ((count % 100) == 0U) {
-			sprintf(count_str, "%d", count/100U);
-			lv_label_set_text(count_label, count_str);
-		}
-		lv_timer_handler();
-		++count;
-		k_sleep(K_MSEC(10));
-	}
+	lv_run(display);
 }
