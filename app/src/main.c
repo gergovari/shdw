@@ -39,7 +39,12 @@ lv_obj_t* root_screen;
 
 void shd_clock(lv_obj_t* cont) {
 	lv_obj_t* clock = lv_label_create(cont);
-
+	static lv_style_t style;
+	
+	lv_style_init(&style);
+	lv_style_set_text_font(&style, &lv_font_montserrat_48);
+	
+	lv_obj_add_style(clock, &style, 0);
 	lv_label_set_text(clock, "12:34");
 	lv_obj_center(clock);
 }
