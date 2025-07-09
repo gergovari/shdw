@@ -3,16 +3,16 @@
 #include <lvgl.h>
 
 #include "app.h"
+#include "activity_manager.h"
+
+extern app_t lv_launcher;
 
 typedef struct lv_launcher_ctx {
-	lv_obj_t* parent;
 	lv_obj_t* root;
-	lv_obj_t* screen;
-	lv_obj_t* cont;
-	
+
 	app_t* app;
+	activity_t* activity;
 } lv_launcher_ctx;
 
-void lv_launcher_create(lv_obj_t* parent, 
-		app_t* apps,
-		unsigned int size);
+void lv_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user);
+void lv_launcher_main_exit(lv_obj_t* screen);

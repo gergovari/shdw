@@ -16,11 +16,14 @@ LOG_MODULE_REGISTER(app);
 
 #include "app.h"
 
+#include "activity_manager.h"
+
 #include "lv_launcher.h"
 #include "shd_apps.h"
 
 app_t apps[] = {
-	{ .id = "shd.clock", .title = "Clock", .entry = shd_clock_entry, .exit = shd_clock_exit }
+	lv_launcher,
+	shd_clock
 };
 
 void lv_run(const struct device* display) {
@@ -87,6 +90,8 @@ int init_rtc(const struct device* rtc) {
 		LOG_ERR("RTC device not ready!");
 		return -EIO;
 	}
+
+	// TODO: use error return value instead
 #if DT_NODE_HAS_COMPAT(DT_ALIAS(rtc), zephyr_rtc_emul)
 	init_rtc_time(&time);
 	if (rtc_set_time(rtc, &time) != 0) {
@@ -124,6 +129,9 @@ int main(void)
 		LOG_ERR("Devices init failed!");
 	}
 	
-	lv_launcher_create(lv_screen_active(), apps, sizeof(apps)/sizeof(app_t));
+	if (start_home_activity(apps, sizeof(apps)/sizeof(app_t)) != 0) {
+		LOG_ERR("Couldn't launch HOME activity!");
+	}
+
 	lv_run(display);
 }

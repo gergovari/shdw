@@ -1,9 +1,10 @@
 #pragma once
 
+#include "activity.h"
+
 typedef struct app_t {
 	char* id;
 	char* title;
-
-	void (*entry)(lv_obj_t*);
-	void (*exit)();
+	
+	activity_node_t* activities;
 } app_t;
