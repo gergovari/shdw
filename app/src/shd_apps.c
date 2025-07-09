@@ -17,7 +17,7 @@ void shd_clock_set_text(lv_timer_t* timer) {
 	shd_clock_ctx* ctx = (shd_clock_ctx*)lv_timer_get_user_data(timer);
 
 	if (rtc_get_time(ctx->rtc, &tm) == 0) {
-		lv_label_set_text_fmt(ctx->clock, "%i:%i:%i", tm.tm_hour, tm.tm_min, tm.tm_sec);
+		lv_label_set_text_fmt(ctx->clock, "%02i:%02i:%02i", tm.tm_hour, tm.tm_min, tm.tm_sec);
 	} else {
 		lv_label_set_text(ctx->clock, "ERROR");
 	}
