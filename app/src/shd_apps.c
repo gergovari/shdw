@@ -9,6 +9,7 @@
 typedef struct shd_clock_ctx {
 	const struct device* rtc;
 	lv_obj_t* clock;
+	lv_timer_t* timer;
 } shd_clock_ctx;
 
 void shd_clock_set_text(lv_timer_t* timer) {
@@ -22,22 +23,29 @@ void shd_clock_set_text(lv_timer_t* timer) {
 	}
 }
 
-void shd_clock(lv_obj_t* cont) {
+void shd_clock_entry(lv_obj_t* cont) {
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 	lv_obj_t* clock = lv_label_create(cont);
 	static lv_style_t style;
-	shd_clock_ctx* ctx = malloc(sizeof(shd_clock_ctx)); // TODO: destroy on close
-	lv_timer_t* timer;
+	shd_clock_ctx* ctx = malloc(sizeof(shd_clock_ctx));
 
 	lv_style_init(&style);
 	lv_style_set_text_font(&style, &lv_font_montserrat_48);
 	lv_obj_add_style(clock, &style, 0);
 	lv_obj_center(clock);
 	
+	lv_obj_set_user_data(cont, ctx);
 	ctx->rtc = rtc;
 	ctx->clock = clock;
-	timer = lv_timer_create(shd_clock_set_text, 500, ctx); // TODO: destroy on close
-	lv_timer_ready(timer);
+	ctx->timer = lv_timer_create(shd_clock_set_text, 500, ctx);
+	lv_timer_ready(ctx->timer);
+}
+
+void shd_clock_exit(lv_obj_t* cont) {
+	shd_clock_ctx* ctx = (shd_clock_ctx*)lv_obj_get_user_data(cont);
+	
+	lv_timer_delete(ctx->timer);
+	free(ctx);
 }
 
 void shd_dummy(lv_obj_t* cont) {

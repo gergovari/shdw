@@ -14,37 +14,13 @@ LOG_MODULE_REGISTER(app);
 
 #include <lvgl.h>
 
+#include "app.h"
+
 #include "lv_launcher.h"
 #include "shd_apps.h"
 
-char* app_ids[] = {
-	"shd.clock",
-	"shd.timer",
-	"shd.alarm",
-	"shd.notes",
-	"shd.chats",
-	"shd.weather",
-	"shd.maps",
-};
-
-char* app_names[] = {
-	"Clock",
-	"Timer",
-	"Alarm",
-	"Notes",
-	"Chats",
-	"Weather",
-	"Maps",
-};
-
-void (*app_funcs[])(lv_obj_t*) = {
-	shd_clock,
-	shd_dummy,
-	shd_dummy,
-	shd_dummy,
-	shd_dummy,
-	shd_dummy,
-	shd_dummy,
+app_t apps[] = {
+	{ .id = "shd.clock", .title = "Clock", .entry = shd_clock_entry, .exit = shd_clock_exit }
 };
 
 void lv_run(const struct device* display) {
@@ -109,13 +85,13 @@ int init_rtc(const struct device* rtc) {
 
 	if (!device_is_ready(rtc)) {
 		LOG_ERR("RTC device not ready!");
-		return EIO;
+		return -EIO;
 	}
 #if DT_NODE_HAS_COMPAT(DT_ALIAS(rtc), zephyr_rtc_emul)
 	init_rtc_time(&time);
 	if (rtc_set_time(rtc, &time) != 0) {
 		LOG_ERR("RTC device time cannot be set.");
-		return EIO;
+		return -EIO;
 	}
 #endif
 	return 0;
@@ -124,7 +100,7 @@ int init_rtc(const struct device* rtc) {
 int init_display(const struct device* display) {
 	if (!device_is_ready(display)) {
 		LOG_ERR("Display device not ready!");
-		return EIO;
+		return -EIO;
 	}
 	return 0;
 }
@@ -148,6 +124,6 @@ int main(void)
 		LOG_ERR("Devices init failed!");
 	}
 	
-	lv_launcher_create(lv_screen_active(), app_ids, app_names, app_funcs, sizeof(app_ids)/sizeof(char*));
+	lv_launcher_create(lv_screen_active(), apps, sizeof(apps)/sizeof(app_t));
 	lv_run(display);
 }
