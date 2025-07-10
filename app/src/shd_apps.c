@@ -6,22 +6,6 @@
 
 #include <zephyr/drivers/rtc.h>
 
-intent_filter_t shd_clock_filter = {
-	.action = ACTION_MAIN,
-	.category = CATEGORY_LAUNCHER
-}
-activity_t shd_clock_main = {
-	.id = "shd.clock.main",
-	.filters = { .filter = &shd_clock_filter, .next = NULL },
-	.entry = shd_clock_main_entry,
-	.exit = shd_clock_main_exit
-}
-app_t shd_clock = {
-	.id = "shd.clock",
-	.title = "Clock",
-	.activities = { .activity = &shd_clock_main, .next = NULL }
-};
-
 typedef struct shd_clock_ctx {
 	const struct device* rtc;
 	lv_obj_t* clock;
@@ -71,3 +55,27 @@ void shd_dummy_main_entry(lv_obj_t* screen, activity_callback cb, void* user) {
 void shd_dummy_main_exit(lv_obj_t* cont) {
 	printf("dummy closed.\n");
 }
+
+intent_filter_t shd_clock_filter = {
+	.action = ACTION_MAIN,
+	.category = CATEGORY_LAUNCHER
+};
+intent_filter_node_t shd_clock_intent_filter_node = { 
+	.intent_filter = &shd_clock_filter, 
+	.next = NULL 
+};
+activity_t shd_clock_main = {
+	.id = "shd.clock.main",
+	.intent_filters = &shd_clock_intent_filter_node,
+	.entry = shd_clock_main_entry,
+	.exit = shd_clock_main_exit
+};
+activity_node_t shd_clock_activity_node = { 
+	.activity = &shd_clock_main, 
+	.next = NULL 
+};
+app_t shd_clock = {
+	.id = "shd.clock",
+	.title = "Clock",
+	.activities = &shd_clock_activity_node
+};

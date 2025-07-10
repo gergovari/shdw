@@ -5,9 +5,6 @@
 
 #include "app.h"
 
-typedef void (*activity_callback)(void* user, int result, void* data);
-typedef void (*activity_result_callback)(int result, void* data);
-
 typedef struct activity_manager_ctx {
 	activity_t* activity;
 	activity_result_callback cb;
@@ -17,7 +14,7 @@ typedef struct activity_manager_ctx {
 } activity_manager_ctx;
 
 bool is_intent_filter_match(intent_filter_t* intent_filter, intent_t* intent);
-activity_t* search_intent_filters(app_t* apps, size_t size, bool (*func)(intent_filter_t*), void* user);
+activity_t* search_intent_filters(app_t* apps, size_t size, bool (*func)(intent_filter_t*, void*), void* user);
 
 int start_activity(activity_t* activity, activity_result_callback cb);
 int start_activity_from_intent(app_t* apps, size_t size, intent_t* intent, activity_result_callback cb);

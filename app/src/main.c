@@ -21,11 +21,6 @@ LOG_MODULE_REGISTER(app);
 #include "lv_launcher.h"
 #include "shd_apps.h"
 
-app_t apps[] = {
-	lv_launcher,
-	shd_clock
-};
-
 void lv_run(const struct device* display) {
 	lv_timer_handler();
 	display_blanking_off(display);
@@ -124,6 +119,11 @@ int main(void)
 {
 	const struct device* display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
+
+	app_t apps[] = {
+		lv_launcher,
+		shd_clock
+	};
 
 	if (init_devices(display, rtc) != 0) {
 		LOG_ERR("Devices init failed!");

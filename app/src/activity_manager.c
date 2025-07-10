@@ -2,9 +2,13 @@
 
 #include <lvgl.h>
 
-activity_t* search_intent_filters(app_t* apps, size_t size, bool (*func)(intent_filter_t*), void* user) {
+#include <stdlib.h>
+#include <errno.h>
+
+activity_t* search_intent_filters(app_t* apps, size_t size, bool (*func)(intent_filter_t*, void*), void* user) {
 	activity_node_t* activity_node;
 	activity_t* activity;
+	app_t* app;
 
 	intent_filter_node_t* intent_filter_node;
 	intent_filter_t* intent_filter;
@@ -73,31 +77,30 @@ int start_activity(activity_t* activity, activity_result_callback cb) {
 		ctx = malloc(sizeof(activity_manager_ctx));
 		ctx->activity = activity;
 		ctx->cb = cb;
-		ctx->prev = lv_active_screen();
+		ctx->prev = lv_screen_active();
 		ctx->screen = lv_obj_create(NULL);
 		
 		lv_obj_add_event_cb(ctx->screen, activity_event_handler, LV_EVENT_KEY, ctx);
 		lv_screen_load(ctx->screen);
-		activity->entry(ctx->screen, finished_activity_cb, ctx);
+		activity->entry(ctx->screen, (void (*)(void*, int,  void*))finished_activity_cb, ctx);
 		return 0;
 	}
 	return -ENOSYS;
 }
 
 int start_activity_from_intent(app_t* apps, size_t size, intent_t* intent, activity_result_callback cb) {
-	app_t* app;
-	activity_t* activity = search_intent_filters(apps, size, is_intent_filter_match, intent);
+	activity_t* activity = search_intent_filters(apps, size, (bool (*)(intent_filter_t*, void*))is_intent_filter_match, intent);
 	
-	return start_activity(activity);
+	return start_activity(activity, cb);
 }
 
 int start_home_activity(app_t* apps, size_t size) {
-	intent_t* intent;
+	intent_t intent;
 	activity_t* activity;
 
-	intent->action = ACTION_MAIN;
-	intent->category = CATEGORY_HOME;
+	intent.action = ACTION_MAIN;
+	intent.category = CATEGORY_HOME;
 
-	activity = search_intent_filters(apps, size, is_intent_filter_match, intent);
-	return start_activity(activity);	
+	activity = search_intent_filters(apps, size, (bool (*)(intent_filter_t*, void*))is_intent_filter_match, &intent);
+	return start_activity(activity, NULL);	
 }
