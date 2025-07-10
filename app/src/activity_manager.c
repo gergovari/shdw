@@ -83,17 +83,16 @@ void finished_activity_cb(activity_manager_ctx* ctx, int result, void* data) {
 }
 
 void activity_event_handler(lv_event_t* e) {
-	uint32_t key;
-	activity_manager_ctx* ctx = lv_event_get_user_data(e);
-
-	key = lv_event_get_key(e);
-	if (key == LV_KEY_ESC) {
-		close_activity(ctx);
-	}
+	activity_manager_ctx* ctx = (activity_manager_ctx*)lv_event_get_user_data(e);
+	
+	close_activity(ctx);
 }
 
-int start_activity(activity_t* activity, activity_result_callback cb, void* user) {
+int start_activity(app_t* app, activity_t* activity, activity_result_callback cb, void* user) {
 	activity_manager_ctx* ctx;
+	
+	lv_obj_t* win;
+	lv_obj_t* close_btn;
 
 	if (activity != NULL) {
 		ctx = malloc(sizeof(activity_manager_ctx));
@@ -102,7 +101,11 @@ int start_activity(activity_t* activity, activity_result_callback cb, void* user
 		ctx->prev = lv_screen_active();
 		ctx->screen = lv_obj_create(NULL);
 		
-		lv_obj_add_event_cb(ctx->screen, activity_event_handler, LV_EVENT_KEY, ctx);
+		win = lv_win_create(ctx->screen);
+		lv_win_add_title(win, app->title);
+		close_btn = lv_win_add_button(win, LV_SYMBOL_CLOSE, 40);
+		lv_obj_add_event_cb(close_btn, activity_event_handler, LV_EVENT_CLICKED, ctx);
+
 		lv_screen_load(ctx->screen);
 		activity->entry(ctx->screen, (void (*)(void*, int,  void*))finished_activity_cb, user);
 
@@ -111,23 +114,26 @@ int start_activity(activity_t* activity, activity_result_callback cb, void* user
 	return -ENOSYS;
 }
 
+int start_activity_from_intent_filter_result(
+		intent_filter_result_t* intent_filter_result,
+		activity_result_callback cb, void* user) {
+	return start_activity(intent_filter_result->app, intent_filter_result->activity, cb, user);
+}
+
 int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback cb) {
 	intent_filter_result_node_t* intent_filter_result_node = search_intent_filters(apps, 
 			(bool (*)(intent_filter_t*, void*))is_intent_filter_match, 
 			intent);
-	activity_t* activity;
 
 	if (intent_filter_result_node == NULL) return -ENOSYS;
 
 	// TODO: allow user to pick if multiple activities match
-	activity = intent_filter_result_node->intent_filter_result.activity; 
-	return start_activity(activity, cb, intent->user);
+	return start_activity_from_intent_filter_result(&intent_filter_result_node->intent_filter_result, cb, intent->user);
 }
 
 int start_home_activity(apps_t* apps) {
 	intent_t intent;
 	
-	// FIXME: matching too many activities
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_HOME;
 	intent.user = apps;

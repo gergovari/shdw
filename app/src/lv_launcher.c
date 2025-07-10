@@ -10,7 +10,7 @@
 void lv_launcher_entry_click_cb(lv_event_t *e) {
 	lv_launcher_entry_ctx* ctx = (lv_launcher_entry_ctx*)lv_event_get_user_data(e);
 	
-	start_activity(ctx->activity, NULL, NULL);
+	start_activity(ctx->app, ctx->activity, NULL, NULL);
 }
 
 void lv_launcher_entry_create(lv_launcher_entry_ctx* ctx) {
