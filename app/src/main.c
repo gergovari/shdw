@@ -119,17 +119,21 @@ int main(void)
 {
 	const struct device* display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
-
-	app_t apps[] = {
-		lv_launcher,
-		shd_clock
+	
+	app_t* app_list[] = {
+		&lv_launcher,
+		&shd_clock
+	};
+	apps_t apps = {
+		.list = app_list,
+		.size = sizeof(app_list)/sizeof(app_t*)
 	};
 
 	if (init_devices(display, rtc) != 0) {
 		LOG_ERR("Devices init failed!");
 	}
 	
-	if (start_home_activity(apps, sizeof(apps)/sizeof(app_t)) != 0) {
+	if (start_home_activity(&apps) != 0) {
 		LOG_ERR("Couldn't launch HOME activity!");
 	}
 

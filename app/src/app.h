@@ -8,3 +8,8 @@ typedef struct app_t {
 	
 	activity_node_t* activities;
 } app_t;
+
+typedef struct apps_t {
+	app_t** list;
+	size_t size;
+} apps_t;

@@ -17,7 +17,7 @@ struct intent_filter_ts {
 	int64_t action;
 	int64_t category;
 
-	char* data;
+	char* type;
 };
 
 struct intent_filter_node_ts {
@@ -26,10 +26,11 @@ struct intent_filter_node_ts {
 };
 
 struct intent_ts {
+	char* activity;
+
 	int64_t action;
 	int64_t category;
 
-	char* data; // TODO: data rework
-	char* activity;
-	void* extra;
+	void* user;
+	char* type;
 };

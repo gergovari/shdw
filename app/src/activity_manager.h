@@ -13,9 +13,20 @@ typedef struct activity_manager_ctx {
 	lv_obj_t* screen;
 } activity_manager_ctx;
 
-bool is_intent_filter_match(intent_filter_t* intent_filter, intent_t* intent);
-activity_t* search_intent_filters(app_t* apps, size_t size, bool (*func)(intent_filter_t*, void*), void* user);
+typedef struct intent_filter_result_t {
+	app_t* app;
+	activity_t* activity;
+} intent_filter_result_t;
 
-int start_activity(activity_t* activity, activity_result_callback cb);
-int start_activity_from_intent(app_t* apps, size_t size, intent_t* intent, activity_result_callback cb);
-int start_home_activity(app_t* apps, size_t size);
+typedef struct intent_filter_result_node_ts intent_filter_result_node_t;
+struct intent_filter_result_node_ts {
+	intent_filter_result_t intent_filter_result;
+	intent_filter_result_node_t* next;
+};
+
+bool is_intent_filter_match(intent_filter_t* intent_filter, intent_t* intent);
+intent_filter_result_node_t* search_intent_filters(apps_t* apps, bool (*func)(intent_filter_t*, void*), void* user);
+
+int start_activity(activity_t* activity, activity_result_callback cb, void* user);
+int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback cb);
+int start_home_activity(apps_t* apps);
