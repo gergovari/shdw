@@ -38,6 +38,7 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 						intent_filter_result_node = intent_filter_result_node->next;
 					}
 
+					intent_filter_result_node->next = NULL;
 					intent_filter_result.app = app;
 					intent_filter_result.activity = activity;
 					intent_filter_result_node->intent_filter_result = intent_filter_result;

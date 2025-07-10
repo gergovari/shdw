@@ -61,9 +61,8 @@ void lv_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user) 
 			app = intent_filter_result->app;
 			activity = intent_filter_result->activity;
 			old_intent_filter_result_node = intent_filter_result_node;
-			//printf("%p", intent_filter_result_node);
-			//intent_filter_result_node = intent_filter_result_node->next;
-			//free(intent_filter_result_node);
+			intent_filter_result_node = intent_filter_result_node->next;
+			free(intent_filter_result_node);
 
 			entry_ctx = malloc(sizeof(lv_launcher_entry_ctx));
 			entry_ctx->root = root;
