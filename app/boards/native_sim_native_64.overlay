@@ -1,6 +1,6 @@
 
 &sdl_dc {
         compatible = "zephyr,sdl-dc";
-        width = <864>;
-        height = <480>;
+        width = <240>;
+        height = <240>;
 };
