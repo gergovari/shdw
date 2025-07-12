@@ -83,14 +83,14 @@ int init_rtc(const struct device* rtc) {
 		return -EIO;
 	}
 
-	// TODO: use error return value instead
-#if DT_NODE_HAS_COMPAT(DT_ALIAS(rtc), zephyr_rtc_emul)
-	init_rtc_time(&time);
-	if (rtc_set_time(rtc, &time) != 0) {
-		LOG_ERR("RTC device time cannot be set.");
-		return -EIO;
+	if (rtc_get_time(rtc, &time) != 0) {
+		init_rtc_time(&time);
+		if (rtc_set_time(rtc, &time) != 0) {
+			LOG_ERR("RTC device time cannot be set.");
+			return -EIO;
+		}
 	}
-#endif
+
 	return 0;
 }
 
