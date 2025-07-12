@@ -23,12 +23,11 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 		app = apps->list[i];
 		activity_node = app->activities;
 		
-		// FIXME: review do while-s for linked lists for null problems
-		do {
+		while (activity_node != NULL) {
 			activity = activity_node->activity;
 			intent_filter_node = activity->intent_filters;
 
-			do {
+			while (intent_filter_node != NULL) {
 				intent_filter = intent_filter_node->intent_filter;
 
 				if (func(intent_filter, user)) {
@@ -48,10 +47,10 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 				};
 
 				intent_filter_node = intent_filter_node->next;
-			} while (intent_filter_node != NULL);
+			};
 
 			activity_node = activity_node->next;
-		} while (activity_node != NULL);
+		};
 	}
 	return final_node;
 }
