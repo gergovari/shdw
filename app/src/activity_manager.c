@@ -22,7 +22,8 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 	for (size_t i = 0; i < apps->size; i++) {
 		app = apps->list[i];
 		activity_node = app->activities;
-
+		
+		// FIXME: review do while-s for linked lists for null problems
 		do {
 			activity = activity_node->activity;
 			intent_filter_node = activity->intent_filters;

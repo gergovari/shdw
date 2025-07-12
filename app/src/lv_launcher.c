@@ -8,12 +8,12 @@
 #include "activity_manager.h"
 
 void lv_launcher_entry_click_cb(lv_event_t *e) {
-	lv_launcher_entry_ctx* ctx = (lv_launcher_entry_ctx*)lv_event_get_user_data(e);
+	lv_launcher_entry_ctx_t* ctx = (lv_launcher_entry_ctx_t*)lv_event_get_user_data(e);
 	
 	start_activity(ctx->app, ctx->activity, NULL, NULL);
 }
 
-void lv_launcher_entry_create(lv_launcher_entry_ctx* ctx) {
+void lv_launcher_entry_create(lv_launcher_entry_ctx_t* ctx) {
 	lv_obj_t* cont = lv_menu_cont_create(ctx->root);
 	lv_obj_t* btn = lv_button_create(cont);
 	lv_obj_t* label = lv_label_create(btn);
@@ -27,8 +27,7 @@ void lv_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user) 
 	lv_obj_t* root = lv_menu_page_create(menu, NULL);
 	lv_obj_t* error_label;
 
-	/*lv_launcher_ctx ctx;
-	lv_obj_set_user_data(screen, ctx);*/
+	lv_launcher_ctx_t* ctx = malloc(sizeof(lv_launcher_ctx_t));
 	apps_t* apps = (apps_t*)user;
 	
 	intent_t intent;
@@ -36,10 +35,13 @@ void lv_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user) 
 	intent_filter_result_node_t* old_intent_filter_result_node;
 	intent_filter_result_t* intent_filter_result;
 
-	lv_launcher_entry_ctx* entry_ctx;
+	lv_launcher_entry_ctx_t* entry_ctx;
 	app_t* app;
 	activity_t* activity;
 	
+	lv_obj_set_user_data(screen, ctx);
+	ctx->entries = NULL;
+
 	lv_obj_set_size(menu, 
 			lv_display_get_horizontal_resolution(NULL), 
 			lv_display_get_vertical_resolution(NULL));
@@ -56,7 +58,7 @@ void lv_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user) 
 		lv_obj_center(error_label);
 		lv_label_set_text(error_label, "No launchable apps found!");
 	} else {
-		do {
+		while (intent_filter_result_node != NULL) {
 			intent_filter_result = &(intent_filter_result_node->intent_filter_result);
 			app = intent_filter_result->app;
 			activity = intent_filter_result->activity;
@@ -64,20 +66,38 @@ void lv_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user) 
 			intent_filter_result_node = intent_filter_result_node->next;
 			free(intent_filter_result_node);
 
-			entry_ctx = malloc(sizeof(lv_launcher_entry_ctx));
+			entry_ctx = malloc(sizeof(lv_launcher_entry_ctx_t));
 			entry_ctx->root = root;
 			entry_ctx->app = app;
 			entry_ctx->activity = activity;
 
 			lv_launcher_entry_create(entry_ctx);
-			// TODO: add entry_ctx to widget ctx
-		} while (intent_filter_result_node != NULL);
+			
+			if (ctx->entries == NULL) {
+				ctx->entries = malloc(sizeof(lv_launcher_entry_ctx_node_t));
+			} else {
+				ctx->entries->next = malloc(sizeof(lv_launcher_entry_ctx_node_t));
+				ctx->entries = ctx->entries->next;
+			}
+			ctx->entries->value = entry_ctx;
+		};
 	}
 
 	lv_menu_set_page(menu, root); }
 
 void lv_launcher_main_exit(lv_obj_t* screen) {
-	// TODO: free all entry_ctxs
+	lv_launcher_ctx_t* ctx = (lv_launcher_ctx_t*)lv_obj_get_user_data(screen);
+	
+	lv_launcher_entry_ctx_node_t* node = ctx->entries;
+	lv_launcher_entry_ctx_node_t* next_node;
+
+	while (node != NULL) {
+		next_node = node->next;
+		free(node);
+		node = next_node;
+	}
+
+	free(ctx);
 }
 
 intent_filter_t lv_launcher_intent_filter = {
