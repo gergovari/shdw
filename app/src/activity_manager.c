@@ -68,6 +68,7 @@ bool is_intent_filter_match(intent_filter_t* intent_filter, intent_t* intent) {
 }
 
 void close_activity(activity_manager_ctx* ctx) {
+	// FIXME: crash if no prev
 	lv_screen_load(ctx->prev);
 
 	ctx->activity->exit(ctx->screen);
@@ -107,6 +108,7 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 		lv_obj_add_event_cb(close_btn, activity_event_handler, LV_EVENT_CLICKED, ctx);
 
 		lv_screen_load(ctx->screen);
+		// FIXME: dont pass the screen, pass where we should draw
 		activity->entry(ctx->screen, (void (*)(void*, int,  void*))finished_activity_cb, user);
 
 		return 0;

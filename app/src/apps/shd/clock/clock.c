@@ -1,7 +1,6 @@
-#include "shd_apps.h"
+#include "clock.h"
 
 #include <lvgl.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include <zephyr/drivers/rtc.h>
@@ -47,13 +46,6 @@ void shd_clock_main_exit(lv_obj_t* screen) {
 	
 	lv_timer_delete(ctx->timer);
 	free(ctx);
-}
-
-void shd_dummy_main_entry(lv_obj_t* screen, activity_callback cb, void* user) {
-	printf("dummy opened.\n");
-}
-void shd_dummy_main_exit(lv_obj_t* cont) {
-	printf("dummy closed.\n");
 }
 
 intent_filter_t shd_clock_filter = {

@@ -15,11 +15,8 @@ LOG_MODULE_REGISTER(app);
 #include <lvgl.h>
 
 #include "app.h"
-
+#include "apps/apps.h"
 #include "activity_manager.h"
-
-#include "lv_launcher.h"
-#include "shd_apps.h"
 
 void lv_run(const struct device* display) {
 	lv_timer_handler();
@@ -121,8 +118,9 @@ int main(void)
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 	
 	app_t* app_list[] = {
-		&lv_launcher,
-		&shd_clock
+		&shd_launcher,
+		&shd_dummy,
+		&shd_clock,
 	};
 	apps_t apps = {
 		.list = app_list,
