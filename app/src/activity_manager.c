@@ -55,6 +55,23 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 	return final_node;
 }
 
+bool is_activity_in_category(activity_t* activity, category_t category) {
+	intent_filter_node_t* intent_filter_node = activity->intent_filters;
+	intent_filter_t* intent_filter;
+
+	while (intent_filter_node != NULL) {
+		intent_filter = intent_filter_node->intent_filter;
+		
+		if ((intent_filter->category & category) >= category) {
+			return true;
+		}
+
+		intent_filter_node = intent_filter_node->next;
+	}
+
+	return false;
+}
+
 bool is_intent_filter_match(intent_filter_t* intent_filter, intent_t* intent) {
 	// TODO: data check
 	if (
@@ -108,13 +125,17 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 		ctx->prev = lv_screen_active();
 		ctx->screen = lv_obj_create(NULL);
 		
-		win = lv_win_create(ctx->screen);
-		lv_win_add_title(win, app->title);
-		ctx->cont = lv_win_get_content(win);
-		
-		if (ctx->prev != NULL) { 
+		if (ctx->prev == NULL || is_activity_in_category(activity, CATEGORY_HOME)) { 
+			ctx->cont = ctx->screen;
+		} else {
+			win = lv_win_create(ctx->screen);
+
+			lv_win_add_title(win, app->title);
+
 			close_btn = lv_win_add_button(win, LV_SYMBOL_CLOSE, 40);
 			lv_obj_add_event_cb(close_btn, activity_event_handler, LV_EVENT_CLICKED, ctx);
+
+			ctx->cont = lv_win_get_content(win);
 		}
 
 		lv_screen_load(ctx->screen);

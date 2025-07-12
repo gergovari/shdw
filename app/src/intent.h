@@ -13,9 +13,12 @@ typedef struct intent_filter_ts intent_filter_t;
 typedef struct intent_filter_node_ts intent_filter_node_t;
 typedef struct intent_ts intent_t;
 
+typedef int64_t action_t;
+typedef int64_t category_t;
+
 struct intent_filter_ts {
-	int64_t action;
-	int64_t category;
+	action_t action;
+	category_t category;
 
 	char* type;
 };
@@ -28,8 +31,8 @@ struct intent_filter_node_ts {
 struct intent_ts {
 	char* activity;
 
-	int64_t action;
-	int64_t category;
+	action_t action;
+	category_t category;
 
 	void* input;
 	char* type;
