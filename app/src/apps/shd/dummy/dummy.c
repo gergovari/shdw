@@ -2,12 +2,12 @@
 
 #include <stdio.h>
 
-void shd_dummy_main_entry(lv_obj_t* screen, activity_callback cb, void* user) {
-	//printf("dummy opened.\n");
-	//cb(user, 0, NULL);
+void shd_dummy_main_entry(lv_obj_t* screen, activity_callback cb, void* input, void* user) {
+	printf("dummy opened!\n");
+	cb(user, 0, NULL);
 }
 void shd_dummy_main_exit(lv_obj_t* screen) {
-	//printf("dummy closed.\n");
+	printf("dummy closed.\n");
 }
 
 intent_filter_t shd_dummy_filter = {

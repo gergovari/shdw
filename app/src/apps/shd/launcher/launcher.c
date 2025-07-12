@@ -8,7 +8,7 @@
 void shd_launcher_entry_click_cb(lv_event_t *e) {
 	shd_launcher_entry_ctx_t* ctx = (shd_launcher_entry_ctx_t*)lv_event_get_user_data(e);
 	
-	start_activity(ctx->app, ctx->activity, NULL, NULL);
+	start_activity(ctx->app, ctx->activity, NULL, NULL, NULL);
 }
 
 void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
@@ -20,13 +20,13 @@ void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
 	lv_obj_add_event_cb(btn, shd_launcher_entry_click_cb, LV_EVENT_CLICKED, ctx);
 }
 
-void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user) {
+void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* input, void* user) {
 	lv_obj_t* menu = lv_menu_create(screen);
 	lv_obj_t* root = lv_menu_page_create(menu, NULL);
 	lv_obj_t* error_label;
 
 	shd_launcher_ctx_t* ctx = malloc(sizeof(shd_launcher_ctx_t));
-	apps_t* apps = (apps_t*)user;
+	apps_t* apps = (apps_t*)input;
 	
 	intent_t intent;
 	intent_filter_result_node_t* intent_filter_result_node;
@@ -40,9 +40,6 @@ void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user)
 	lv_obj_set_user_data(screen, ctx);
 	ctx->entries = NULL;
 
-	lv_obj_set_size(menu, 
-			lv_display_get_horizontal_resolution(NULL), 
-			lv_display_get_vertical_resolution(NULL));
 	lv_obj_center(menu);
 	
 	intent.action = ACTION_MAIN;

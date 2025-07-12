@@ -68,10 +68,15 @@ bool is_intent_filter_match(intent_filter_t* intent_filter, intent_t* intent) {
 }
 
 void close_activity(activity_manager_ctx* ctx) {
-	// FIXME: crash if no prev
-	lv_screen_load(ctx->prev);
+	if (ctx->prev == NULL) {
+		// TODO: implement
+		//start_home_activity();
+		printf("no prev activity!\n");
+	} else {
+		lv_screen_load(ctx->prev);
+	}
 
-	ctx->activity->exit(ctx->screen);
+	ctx->activity->exit(ctx->cont);
 	lv_obj_delete(ctx->screen);
 	free(ctx);
 }
@@ -80,7 +85,7 @@ void finished_activity_cb(activity_manager_ctx* ctx, int result, void* data) {
 	activity_result_callback cb = ctx->cb;
 	
 	close_activity(ctx);
-	if (cb != NULL) cb(result, data);
+	if (cb != NULL) cb(result, data, ctx->user);
 }
 
 void activity_event_handler(lv_event_t* e) {
@@ -89,7 +94,7 @@ void activity_event_handler(lv_event_t* e) {
 	close_activity(ctx);
 }
 
-int start_activity(app_t* app, activity_t* activity, activity_result_callback cb, void* user) {
+int start_activity(app_t* app, activity_t* activity, activity_result_callback cb, void* input, void* user) {
 	activity_manager_ctx* ctx;
 	
 	lv_obj_t* win;
@@ -99,17 +104,21 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 		ctx = malloc(sizeof(activity_manager_ctx));
 		ctx->activity = activity;
 		ctx->cb = cb;
+		ctx->user = user;
 		ctx->prev = lv_screen_active();
 		ctx->screen = lv_obj_create(NULL);
 		
 		win = lv_win_create(ctx->screen);
 		lv_win_add_title(win, app->title);
-		close_btn = lv_win_add_button(win, LV_SYMBOL_CLOSE, 40);
-		lv_obj_add_event_cb(close_btn, activity_event_handler, LV_EVENT_CLICKED, ctx);
+		ctx->cont = lv_win_get_content(win);
+		
+		if (ctx->prev != NULL) { 
+			close_btn = lv_win_add_button(win, LV_SYMBOL_CLOSE, 40);
+			lv_obj_add_event_cb(close_btn, activity_event_handler, LV_EVENT_CLICKED, ctx);
+		}
 
 		lv_screen_load(ctx->screen);
-		// FIXME: dont pass the screen, pass where we should draw
-		activity->entry(ctx->screen, (void (*)(void*, int,  void*))finished_activity_cb, user);
+		activity->entry(ctx->cont, (void (*)(void*, int,  void*))finished_activity_cb, input, ctx);
 
 		return 0;
 	}
@@ -118,8 +127,8 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 
 int start_activity_from_intent_filter_result(
 		intent_filter_result_t* intent_filter_result,
-		activity_result_callback cb, void* user) {
-	return start_activity(intent_filter_result->app, intent_filter_result->activity, cb, user);
+		activity_result_callback cb, void* input, void* user) {
+	return start_activity(intent_filter_result->app, intent_filter_result->activity, cb, input, user);
 }
 
 int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback cb) {
@@ -130,7 +139,7 @@ int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_c
 	if (intent_filter_result_node == NULL) return -ENOSYS;
 
 	// TODO: allow user to pick if multiple activities match
-	return start_activity_from_intent_filter_result(&intent_filter_result_node->intent_filter_result, cb, intent->user);
+	return start_activity_from_intent_filter_result(&intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user);
 }
 
 int start_home_activity(apps_t* apps) {
@@ -138,7 +147,7 @@ int start_home_activity(apps_t* apps) {
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_HOME;
-	intent.user = apps;
+	intent.input = apps;
 	
 	return start_activity_from_intent(apps, &intent, NULL);
 }

@@ -22,7 +22,7 @@ void shd_clock_set_text(lv_timer_t* timer) {
 	}
 }
 
-void shd_clock_main_entry(lv_obj_t* screen, activity_callback cb, void* user) {
+void shd_clock_main_entry(lv_obj_t* screen, activity_callback cb, void* input, void* user) {
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 	lv_obj_t* clock = lv_label_create(screen);
 	static lv_style_t style;

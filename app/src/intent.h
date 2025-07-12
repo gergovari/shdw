@@ -31,6 +31,8 @@ struct intent_ts {
 	int64_t action;
 	int64_t category;
 
-	void* user;
+	void* input;
 	char* type;
+
+	void* user;
 };

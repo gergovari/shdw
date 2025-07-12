@@ -24,5 +24,5 @@ typedef struct shd_launcher_ctx_t {
 	shd_launcher_entry_ctx_node_t* entries;
 } shd_launcher_ctx_t;
 
-void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* user);
+void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* input, void* user);
 void shd_launcher_main_exit(lv_obj_t* screen);
