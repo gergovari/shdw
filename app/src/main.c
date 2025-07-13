@@ -122,7 +122,7 @@ int init_displays(const struct device** displays, size_t size, lv_display_t** lv
 			return -EIO;
 		}
 		
-		// NOTE: user data crashes for some reason on lv_timer_handler()...
+		// FIXME: user data crashes for some reason on lv_timer_handler()...
 		lv_display_set_driver_data(d, NULL);
 		lv_displays[size-1 - i] = d;
 	}

@@ -8,7 +8,7 @@
 void shd_launcher_entry_click_cb(lv_event_t *e) {
 	shd_launcher_entry_ctx_t* ctx = (shd_launcher_entry_ctx_t*)lv_event_get_user_data(e);
 	
-	start_activity(ctx->app, ctx->activity, NULL, NULL, NULL, NULL);
+	start_activity(ctx->apps, ctx->app, ctx->activity, NULL, NULL, NULL, NULL);
 }
 
 void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
@@ -20,13 +20,14 @@ void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
 	lv_obj_add_event_cb(btn, shd_launcher_entry_click_cb, LV_EVENT_CLICKED, ctx);
 }
 
-void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* input, void* user) {
+void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
+	lv_obj_t* screen = activity_ctx->screen;
 	lv_obj_t* menu = lv_menu_create(screen);
 	lv_obj_t* root = lv_menu_page_create(menu, NULL);
 	lv_obj_t* error_label;
 
 	shd_launcher_ctx_t* ctx = malloc(sizeof(shd_launcher_ctx_t));
-	apps_t* apps = (apps_t*)input;
+	apps_t* apps = (apps_t*)activity_ctx->apps;
 	
 	intent_t intent;
 	intent_filter_result_node_t* intent_filter_result_node;
@@ -44,8 +45,10 @@ void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* input
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_LAUNCHER;
+	intent.activity = NULL;
+
 	intent_filter_result_node = search_intent_filters(apps, 
-			(bool (*)(intent_filter_t*, void*))is_intent_filter_match, 
+			(intent_filter_func_t)is_intent_filter_match, 
 			&intent);
 
 	if (intent_filter_result_node == NULL) {
@@ -63,6 +66,7 @@ void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* input
 
 			entry_ctx = malloc(sizeof(shd_launcher_entry_ctx_t));
 			entry_ctx->root = root;
+			entry_ctx->apps = apps;
 			entry_ctx->app = app;
 			entry_ctx->activity = activity;
 
@@ -81,8 +85,8 @@ void shd_launcher_main_entry(lv_obj_t* screen, activity_callback cb, void* input
 	lv_menu_set_page(menu, root);
 }
 
-void shd_launcher_main_exit(lv_obj_t* screen) {
-	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)lv_obj_get_user_data(screen);
+void shd_launcher_main_exit(activity_ctx_t* activity_ctx) {
+	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)lv_obj_get_user_data(activity_ctx->screen);
 	
 	shd_launcher_entry_ctx_node_t* node = ctx->entries;
 	shd_launcher_entry_ctx_node_t* next_node;

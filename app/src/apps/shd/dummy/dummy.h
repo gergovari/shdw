@@ -1,8 +1,18 @@
 #pragma once
 
+#include <lvgl.h>
+
 #include "../../../app.h"
+#include "../../../activity.h"
 
 extern app_t shd_dummy;
 
-void shd_dummy_main_entry(lv_obj_t* screen, activity_callback cb, void* input, void* user);
-void shd_dummy_main_exit(lv_obj_t* screen);
+typedef struct shd_dummy_ctx_t {
+	activity_ctx_t* activity_ctx;
+	int8_t* random;
+
+	lv_obj_t* list;
+} shd_dummy_ctx_t;
+
+void shd_dummy_main_entry(activity_ctx_t* ctx);
+void shd_dummy_main_exit(activity_ctx_t* ctx);
