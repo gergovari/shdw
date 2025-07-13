@@ -1,16 +1,24 @@
 #pragma once
 
+#include <lvgl.h>
+
 #include "activity.h"
 #include "intent.h"
 
 #include "app.h"
+
+typedef struct lv_screen_node_ts lv_screen_node_t;
+struct lv_screen_node_ts {
+	lv_obj_t* value;
+	lv_screen_node_t* prev;
+};
 
 typedef struct activity_manager_ctx {
 	activity_t* activity;
 	activity_result_callback cb;
 	void* user;
 	
-	lv_obj_t* prev;
+	lv_screen_node_t* prevs;
 	lv_obj_t* screen;
 	lv_obj_t* cont;
 } activity_manager_ctx;

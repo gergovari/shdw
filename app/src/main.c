@@ -117,11 +117,13 @@ int init_displays(const struct device** displays, size_t size, lv_display_t** lv
 		}
 
 		d = lv_display_get_next(d);
-
 		if (d == NULL) {
 			LOG_ERR("Invalid LV display %d object.", i);
 			return -EIO;
 		}
+		
+		// NOTE: user data crashes for some reason on lv_timer_handler()...
+		lv_display_set_driver_data(d, NULL);
 		lv_displays[size-1 - i] = d;
 	}
 
@@ -139,13 +141,32 @@ int init_devices(const struct device** displays, size_t size, lv_display_t** lv_
 	return ret;
 }
 
+int start_activities(apps_t* apps, lv_display_t** lv_displays, size_t size) {
+	int ret = 0;
+
+	ret = start_home_activity(apps, NULL);
+	if (ret != 0) {
+		LOG_ERR("Couldn't launch CATEGORY_HOME activity!");
+	}
+	
+	#ifdef DEBUG
+	if (DT_ZEPHYR_DISPLAYS_COUNT > 1) {
+		//ret = start_debug_activity(apps, lv_displays[1]);
+		if (ret != 0) {
+			LOG_ERR("Couldn't launch CATEGORY_DEBUG activity!");
+		}
+	}
+	#endif
+	
+	return ret;
+}
+
 int main(void)
 {
 	const struct device* displays[DT_ZEPHYR_DISPLAYS_COUNT];
 	lv_display_t* lv_displays[DT_ZEPHYR_DISPLAYS_COUNT];
 
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
-	
 
 	app_t* app_list[] = {
 		&shd_launcher,
@@ -164,14 +185,9 @@ int main(void)
 		LOG_ERR("Devices init failed!");
 	}
 	
-	if (start_home_activity(&apps, NULL) != 0) {
-		LOG_ERR("Couldn't launch HOME activity!");
-	}
+	if (start_activities(&apps, lv_displays, DT_ZEPHYR_DISPLAYS_COUNT) != 0) {
+		LOG_ERR("Failed to start activities!");
+	} 
 	
-	#ifdef DEBUG
-		if (DT_ZEPHYR_DISPLAYS_COUNT > 1)
-			start_debug_activity(&apps, lv_displays[1]);
-	#endif
-
 	lv_run(displays, DT_ZEPHYR_DISPLAYS_COUNT);
 }

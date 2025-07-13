@@ -85,18 +85,22 @@ bool is_intent_filter_match(intent_filter_t* intent_filter, intent_t* intent) {
 }
 
 void close_activity(activity_manager_ctx* ctx) {
-	if (ctx->prev == NULL) {
-		// TODO: implement
-		//start_home_activity();
+	if (ctx->prevs == NULL) {
+		// TODO: start_home_activity();
 		printf("no prev activity!\n");
 	} else {
-		lv_screen_load(ctx->prev);
+		lv_screen_load(ctx->prevs->value);
+		ctx->prevs = ctx->prevs->prev;
 	}
 
 	ctx->activity->exit(ctx->cont);
+
 	lv_obj_delete(ctx->screen);
-	free(ctx);
+	if (ctx->prevs != NULL)
+		ctx->screen = ctx->prevs->value;
 }
+
+// TODO: void pause_activity...
 
 void finished_activity_cb(activity_manager_ctx* ctx, int result, void* data) {
 	activity_result_callback cb = ctx->cb;
@@ -113,24 +117,41 @@ void activity_event_handler(lv_event_t* e) {
 
 int start_activity(app_t* app, activity_t* activity, activity_result_callback cb, void* input, void* user, lv_display_t* display) {
 	activity_manager_ctx* ctx;
+	lv_screen_node_t* old_prevs;
 	
 	lv_display_t* old_display = lv_display_get_default();
 	lv_obj_t* win;
 	lv_obj_t* close_btn;
 
 	if (activity != NULL) {
-		ctx = malloc(sizeof(activity_manager_ctx));
+		if (display == NULL) display = old_display;
+		
+		// NOTE: driver data workaround as user_data crashes...
+		ctx = (activity_manager_ctx*)lv_display_get_driver_data(display);
+		if (ctx == NULL) {
+			printf("activity manager ctx added to display!\n");
+			ctx = malloc(sizeof(activity_manager_ctx));
+			lv_display_set_driver_data(display, ctx);
+		}
+
 		ctx->activity = activity;
 		ctx->cb = cb;
 		ctx->user = user;
 
-		if (display == NULL) display = old_display;
 		lv_display_set_default(display);
-		ctx->prev = lv_screen_active();
+
 		ctx->screen = lv_obj_create(NULL);
+		
+		// TODO: cleanup
+		old_prevs = ctx->prevs;
+		ctx->prevs = malloc(sizeof(lv_screen_node_t));
+		ctx->prevs->prev = old_prevs;
+		ctx->prevs->value = lv_screen_active();
+
 		lv_display_set_default(old_display);
 		
-		if (ctx->prev == NULL || is_activity_in_category(activity, CATEGORY_HOME)) { 
+		// TODO: remove window
+		if (ctx->prevs->prev == NULL || is_activity_in_category(activity, CATEGORY_HOME)) { 
 			ctx->cont = ctx->screen;
 		} else {
 			win = lv_win_create(ctx->screen);
