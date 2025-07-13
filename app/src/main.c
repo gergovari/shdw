@@ -151,7 +151,7 @@ int start_activities(apps_t* apps, lv_display_t** lv_displays, size_t size) {
 	
 	#ifdef DEBUG
 	if (DT_ZEPHYR_DISPLAYS_COUNT > 1) {
-		//ret = start_debug_activity(apps, lv_displays[1]);
+		ret = start_debug_activity(apps, lv_displays[1]);
 		if (ret != 0) {
 			LOG_ERR("Couldn't launch CATEGORY_DEBUG activity!");
 		}
