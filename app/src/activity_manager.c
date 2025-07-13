@@ -111,7 +111,7 @@ void activity_event_handler(lv_event_t* e) {
 	close_activity(ctx);
 }
 
-int start_activity(app_t* app, activity_t* activity, activity_result_callback cb, void* input, void* user) {
+int start_activity(app_t* app, activity_t* activity, activity_result_callback cb, void* input, void* user, lv_display_t* display) {
 	activity_manager_ctx* ctx;
 	
 	lv_obj_t* win;
@@ -137,7 +137,10 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 
 			ctx->cont = lv_win_get_content(win);
 		}
+		
+		if (display == NULL) display = lv_display_get_default();
 
+		lv_display_set_default(display);
 		lv_screen_load(ctx->screen);
 		activity->entry(ctx->cont, (void (*)(void*, int,  void*))finished_activity_cb, input, ctx);
 
@@ -148,11 +151,11 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 
 int start_activity_from_intent_filter_result(
 		intent_filter_result_t* intent_filter_result,
-		activity_result_callback cb, void* input, void* user) {
-	return start_activity(intent_filter_result->app, intent_filter_result->activity, cb, input, user);
+		activity_result_callback cb, void* input, void* user, lv_display_t* display) {
+	return start_activity(intent_filter_result->app, intent_filter_result->activity, cb, input, user, display);
 }
 
-int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback cb) {
+int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback cb, lv_display_t* display) {
 	intent_filter_result_node_t* intent_filter_result_node = search_intent_filters(apps, 
 			(bool (*)(intent_filter_t*, void*))is_intent_filter_match, 
 			intent);
@@ -160,15 +163,15 @@ int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_c
 	if (intent_filter_result_node == NULL) return -ENOSYS;
 
 	// TODO: allow user to pick if multiple activities match
-	return start_activity_from_intent_filter_result(&intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user);
+	return start_activity_from_intent_filter_result(&intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user, display);
 }
 
-int start_home_activity(apps_t* apps) {
+int start_home_activity(apps_t* apps, lv_display_t* display) {
 	intent_t intent;
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_HOME;
 	intent.input = apps;
 	
-	return start_activity_from_intent(apps, &intent, NULL);
+	return start_activity_from_intent(apps, &intent, NULL, display);
 }

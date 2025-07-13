@@ -8,7 +8,7 @@
 void shd_launcher_entry_click_cb(lv_event_t *e) {
 	shd_launcher_entry_ctx_t* ctx = (shd_launcher_entry_ctx_t*)lv_event_get_user_data(e);
 	
-	start_activity(ctx->app, ctx->activity, NULL, NULL, NULL);
+	start_activity(ctx->app, ctx->activity, NULL, NULL, NULL, NULL);
 }
 
 void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {

@@ -160,7 +160,7 @@ int main(void)
 		LOG_ERR("Devices init failed!");
 	}
 	
-	if (start_home_activity(&apps) != 0) {
+	if (start_home_activity(&apps, NULL) != 0) {
 		LOG_ERR("Couldn't launch HOME activity!");
 	}
 
