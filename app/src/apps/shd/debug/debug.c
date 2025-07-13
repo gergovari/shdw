@@ -8,7 +8,10 @@
 
 void shd_debug_home_cb(lv_event_t* e) {
 	printf("home\n");
+	// TODO: implement home button
 }
+
+// TODO: figure out buttons
 
 void shd_debug_main_entry(activity_ctx_t* ctx) {
 	lv_obj_t* home_btn = lv_btn_create(ctx->screen);
