@@ -114,6 +114,7 @@ void activity_event_handler(lv_event_t* e) {
 int start_activity(app_t* app, activity_t* activity, activity_result_callback cb, void* input, void* user, lv_display_t* display) {
 	activity_manager_ctx* ctx;
 	
+	lv_display_t* old_display = lv_display_get_default();
 	lv_obj_t* win;
 	lv_obj_t* close_btn;
 
@@ -123,7 +124,11 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 		ctx->cb = cb;
 		ctx->user = user;
 		ctx->prev = lv_screen_active();
+
+		if (display == NULL) display = old_display;
+		lv_display_set_default(display);
 		ctx->screen = lv_obj_create(NULL);
+		lv_display_set_default(old_display);
 		
 		if (ctx->prev == NULL || is_activity_in_category(activity, CATEGORY_HOME)) { 
 			ctx->cont = ctx->screen;
@@ -137,10 +142,7 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 
 			ctx->cont = lv_win_get_content(win);
 		}
-		
-		if (display == NULL) display = lv_display_get_default();
 
-		lv_display_set_default(display);
 		lv_screen_load(ctx->screen);
 		activity->entry(ctx->cont, (void (*)(void*, int,  void*))finished_activity_cb, input, ctx);
 
@@ -172,6 +174,15 @@ int start_home_activity(apps_t* apps, lv_display_t* display) {
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_HOME;
 	intent.input = apps;
+	
+	return start_activity_from_intent(apps, &intent, NULL, display);
+}
+
+int start_debug_activity(apps_t* apps, lv_display_t* display) {
+	intent_t intent;
+	
+	intent.action = ACTION_MAIN;
+	intent.category = CATEGORY_DEBUG;
 	
 	return start_activity_from_intent(apps, &intent, NULL, display);
 }

@@ -25,6 +25,8 @@ LOG_MODULE_REGISTER(app);
 
 #define ENUMERATE_DISPLAY_DEVS(n) displays[n] = DEVICE_DT_GET(DT_ZEPHYR_DISPLAY(n));
 
+#define DEBUG
+
 void lv_run(const struct device** displays, size_t size) {
 	uint32_t sleep;
 
@@ -120,7 +122,7 @@ int init_displays(const struct device** displays, size_t size, lv_display_t** lv
 			LOG_ERR("Invalid LV display %d object.", i);
 			return -EIO;
 		}
-		lv_displays[i] = d;
+		lv_displays[size-1 - i] = d;
 	}
 
 	lv_display_set_default(lv_displays[0]);
@@ -147,8 +149,10 @@ int main(void)
 
 	app_t* app_list[] = {
 		&shd_launcher,
-		&shd_dummy,
 		&shd_clock,
+
+		&shd_debug,
+		&shd_dummy,
 	};
 	apps_t apps = {
 		.list = app_list,
@@ -163,6 +167,11 @@ int main(void)
 	if (start_home_activity(&apps, NULL) != 0) {
 		LOG_ERR("Couldn't launch HOME activity!");
 	}
+	
+	#ifdef DEBUG
+		if (DT_ZEPHYR_DISPLAYS_COUNT > 1)
+			start_debug_activity(&apps, lv_displays[1]);
+	#endif
 
 	lv_run(displays, DT_ZEPHYR_DISPLAYS_COUNT);
 }

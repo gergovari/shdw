@@ -6,9 +6,9 @@
 	};
 
 	sdl_dc {
-		title = "Debug";
-		width = <300>;
-		height = <600>;
+		title = "Main";
+		width = <240>;
+		height = <240>;
 		status = "okay";
 	};
 
@@ -26,9 +26,9 @@
 
 	sdl_dc2: sdl-dc2 {
 		compatible = "zephyr,sdl-dc";
-		title = "main";
-		width = <240>;
-		height = <240>;
+		title = "Debug";
+		width = <300>;
+		height = <600>;
 		status = "okay";
 	};
 

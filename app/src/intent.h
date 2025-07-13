@@ -8,6 +8,7 @@
 #define CATEGORY_LAUNCHER BIT64(0)
 #define CATEGORY_DEFAULT BIT64(1)
 #define CATEGORY_HOME BIT64(2)
+#define CATEGORY_DEBUG BIT64(3)
 
 typedef struct intent_filter_ts intent_filter_t;
 typedef struct intent_filter_node_ts intent_filter_node_t;
