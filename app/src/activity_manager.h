@@ -9,7 +9,7 @@ typedef struct activity_manager_ctx {
 	activity_t* activity;
 	activity_result_callback cb;
 	void* user;
-
+	
 	lv_obj_t* prev;
 	lv_obj_t* screen;
 	lv_obj_t* cont;

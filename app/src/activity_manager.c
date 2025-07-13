@@ -123,10 +123,10 @@ int start_activity(app_t* app, activity_t* activity, activity_result_callback cb
 		ctx->activity = activity;
 		ctx->cb = cb;
 		ctx->user = user;
-		ctx->prev = lv_screen_active();
 
 		if (display == NULL) display = old_display;
 		lv_display_set_default(display);
+		ctx->prev = lv_screen_active();
 		ctx->screen = lv_obj_create(NULL);
 		lv_display_set_default(old_display);
 		
