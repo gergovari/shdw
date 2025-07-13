@@ -1,6 +1,46 @@
+/ {
+	lvgl_displays: my-displays {
+		compatible = "zephyr,displays";
+		displays = <&sdl_dc &sdl_dc2>;
+		status = "okay";
+	};
 
-&sdl_dc {
-        compatible = "zephyr,sdl-dc";
-        width = <240>;
-        height = <240>;
+	sdl_dc {
+		title = "Debug";
+		width = <300>;
+		height = <600>;
+		status = "okay";
+	};
+
+	input_sdl_touch: input-sdl-touch {
+		compatible = "zephyr,input-sdl-touch";
+		display = <&sdl_dc>;
+	};
+
+	lvgl_pointer {
+		compatible = "zephyr,lvgl-pointer-input";
+		input = <&input_sdl_touch>;
+		display = <&sdl_dc>;
+		status = "okay";
+	};
+
+	sdl_dc2: sdl-dc2 {
+		compatible = "zephyr,sdl-dc";
+		title = "main";
+		width = <240>;
+		height = <240>;
+		status = "okay";
+	};
+
+	input_sdl_touch2: input-sdl-touch2 {
+		compatible = "zephyr,input-sdl-touch";
+		display = <&sdl_dc2>;
+	};
+
+	lvgl_pointer2 {
+		compatible = "zephyr,lvgl-pointer-input";
+		input = <&input_sdl_touch2>;
+		display = <&sdl_dc2>;
+		status = "okay";
+	};
 };

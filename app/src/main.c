@@ -13,18 +13,29 @@
 LOG_MODULE_REGISTER(app);
 
 #include <lvgl.h>
+#include <lvgl_zephyr.h>
 
 #include "app.h"
 #include "apps/apps.h"
 #include "activity_manager.h"
 
-void lv_run(const struct device* display) {
+#if !DT_HAS_COMPAT_STATUS_OKAY(zephyr_displays)
+#error Could not find "zephyr,displays" compatible node in DT
+#endif
+
+#define ENUMERATE_DISPLAY_DEVS(n) displays[n] = DEVICE_DT_GET(DT_ZEPHYR_DISPLAY(n));
+
+void lv_run(const struct device** displays, size_t size) {
+	uint32_t sleep;
+
 	lv_timer_handler();
-	display_blanking_off(display);
+	for (size_t i = 0; i < size; i++) {
+		display_blanking_off(displays[i]);
+	}
 
 	while (1) {
-		lv_timer_handler();
-		k_sleep(K_MSEC(10));
+		sleep = lv_timer_handler();
+		k_msleep(MIN(sleep, INT32_MAX));
 	}
 }
 
@@ -94,19 +105,33 @@ int init_rtc(const struct device* rtc) {
 	return 0;
 }
 
-int init_display(const struct device* display) {
-	if (!device_is_ready(display)) {
-		LOG_ERR("Display device not ready!");
-		return -EIO;
+int init_displays(const struct device** displays, size_t size, lv_display_t** lv_displays) {
+	lv_display_t* d = NULL;
+
+	for (size_t i = 0; i < size; i++) {
+		if (!device_is_ready(displays[i])) {
+			LOG_ERR("Display device %d is not ready.", i);
+			return -EIO;
+		}
+
+		d = lv_display_get_next(d);
+
+		if (d == NULL) {
+			LOG_ERR("Invalid LV display %d object.", i);
+			return -EIO;
+		}
+		lv_displays[i] = d;
 	}
+
+	lv_display_set_default(lv_displays[0]);
 	return 0;
 }
 
-int init_devices(const struct device* display,
+int init_devices(const struct device** displays, size_t size, lv_display_t** lv_displays,
 		const struct device* rtc) {
 	int ret = 0;
 	
-	ret = init_display(display);
+	ret = init_displays(displays, size, lv_displays);
 	ret = init_rtc(rtc);
 	
 	return ret;
@@ -114,9 +139,12 @@ int init_devices(const struct device* display,
 
 int main(void)
 {
-	const struct device* display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+	const struct device* displays[DT_ZEPHYR_DISPLAYS_COUNT];
+	lv_display_t* lv_displays[DT_ZEPHYR_DISPLAYS_COUNT];
+
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 	
+
 	app_t* app_list[] = {
 		&shd_launcher,
 		&shd_dummy,
@@ -127,7 +155,8 @@ int main(void)
 		.size = sizeof(app_list)/sizeof(app_t*)
 	};
 
-	if (init_devices(display, rtc) != 0) {
+	FOR_EACH(ENUMERATE_DISPLAY_DEVS, (), LV_DISPLAYS_IDX_LIST);
+	if (init_devices(displays, DT_ZEPHYR_DISPLAYS_COUNT, lv_displays, rtc) != 0) {
 		LOG_ERR("Devices init failed!");
 	}
 	
@@ -135,5 +164,5 @@ int main(void)
 		LOG_ERR("Couldn't launch HOME activity!");
 	}
 
-	lv_run(display);
+	lv_run(displays, DT_ZEPHYR_DISPLAYS_COUNT);
 }
