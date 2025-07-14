@@ -16,6 +16,7 @@ void shd_dummy_return_cb(int result, void* data, void* user) {
 	lv_label_set_text_fmt(return_label, "return: %i, %i\n", result, *random);
 	
 	free(random);
+	ctx->random = NULL;
 }
 
 void shd_dummy_new_cb(lv_event_t* e) {
@@ -76,6 +77,8 @@ void shd_dummy_main_entry(activity_ctx_t* activity_ctx) {
 }
 void shd_dummy_main_exit(activity_ctx_t* activity_ctx) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)lv_obj_get_user_data(activity_ctx->screen);
+
+	if (ctx->random != NULL) free(ctx->random);
 	free(ctx);
 
 	// TODO: proper logging for apps

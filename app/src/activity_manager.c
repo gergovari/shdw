@@ -238,6 +238,7 @@ lv_obj_t* lv_screen_create_on_display(lv_display_t* display) {
 	return screen;
 }
 
+// FIXME: memory leak lvgl draw buffer?
 // TODO: better activity lifecycles to have enough memory...
 int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
 	activity_manager_ctx_t* ctx; 
