@@ -139,38 +139,79 @@ void activity_event_handler(lv_event_t* e) {
 	close_activity(ctx_bundle);
 }
 
+activity_manager_ctx_t* get_activity_manager(lv_display_t* display) {
+	// FIXME: driver data workaround as user_data crashes...
+	return (activity_manager_ctx_t*)lv_display_get_driver_data(display);
+}
+
+activity_manager_ctx_t* init_activity_manager(lv_display_t* display, apps_t* apps) {
+	activity_manager_ctx_t* ctx = malloc(sizeof(activity_manager_ctx_t)); 
+	
+	ctx->apps = apps;
+	lv_display_set_driver_data(display, ctx);
+
+	return ctx;
+}
+
+activity_manager_ctx_t* try_activity_manager(lv_display_t* display, apps_t* apps) {
+	activity_manager_ctx_t* ctx = get_activity_manager(display);
+
+	if (ctx == NULL) {
+		ctx = init_activity_manager(display, apps);
+	}
+	return ctx;
+}
+
+int init_activity_manager_prevs(activity_manager_ctx_t* ctx) {
+	lv_screen_node_t* old_prevs = ctx->prevs;
+
+	ctx->prevs = malloc(sizeof(lv_screen_node_t));
+	if (ctx->prevs == NULL) {
+		return -ENOSR;
+	} else {
+		ctx->prevs->prev = old_prevs;
+		ctx->prevs->value = lv_screen_active();
+		return 0;
+	}
+}
+
+void destroy_activity_manager_prevs(activity_manager_ctx_t* ctx) {
+	// TODO
+}
+
+void destroy_activity_manager(activity_manager_ctx_t* ctx) {
+	destroy_activity_manager_prevs(ctx);
+	free(ctx);
+}
+
+lv_obj_t* lv_screen_create_on_display(lv_display_t* display) {
+	lv_display_t* old_display = lv_display_get_default();
+	lv_obj_t* screen;
+
+	lv_display_set_default(display);
+	screen = lv_obj_create(NULL);
+	lv_display_set_default(old_display);
+	
+	return screen;
+}
+
 // TODO: better activity lifecycles to have enough memory...
 int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
 	activity_manager_ctx_t* ctx; 
 	activity_ctx_t* activity_ctx = malloc(sizeof(activity_ctx_t));
 	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
-	lv_screen_node_t* old_prevs;
 	
 	lv_obj_t* screen;
-	lv_display_t* old_display = lv_display_get_default();
 	
 	if (activity != NULL) {
-		if (display == NULL) display = old_display;
+		if (display == NULL) display = lv_display_get_default();
 		
-		// FIXME: driver data workaround as user_data crashes...
-		ctx = (activity_manager_ctx_t*)lv_display_get_driver_data(display);
-		if (ctx == NULL) {
-			ctx = malloc(sizeof(activity_manager_ctx_t)); // TODO: cleanup, but currently there's no lifecycle for the activity manager...
-			ctx->apps = apps;
-			lv_display_set_driver_data(display, ctx);
-		}
+		ctx = try_activity_manager(display, apps); // TODO: cleanup
+		if (ctx == NULL) return -EAGAIN;
 
-		lv_display_set_default(display);
-		screen = lv_obj_create(NULL);
+		if (init_activity_manager_prevs(ctx) != 0) return -EAGAIN; // TODO: cleanup
 		
-		// TODO: cleanup, but no lifecycle for activity manager...
-		old_prevs = ctx->prevs;
-		ctx->prevs = malloc(sizeof(lv_screen_node_t));
-		ctx->prevs->prev = old_prevs;
-		ctx->prevs->value = lv_screen_active();
-
-		lv_display_set_default(old_display);
-		
+		screen = lv_screen_create_on_display(display);
 		lv_screen_load(screen);
 
 		ctx_bundle->manager = ctx;
