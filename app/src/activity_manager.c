@@ -160,17 +160,20 @@ activity_manager_ctx_t* try_activity_manager(lv_display_t* display, apps_t* apps
 	return ctx;
 }
 
-int init_activity_manager_prevs(activity_manager_ctx_t* ctx) {
+lv_screen_node_t* continue_activity_manager_prevs(activity_manager_ctx_t* ctx) {
 	lv_screen_node_t* old_prevs = ctx->prevs;
 
 	ctx->prevs = malloc(sizeof(lv_screen_node_t));
 	if (ctx->prevs == NULL) {
-		return -ENOSR;
-	} else {
-		ctx->prevs->prev = old_prevs;
-		ctx->prevs->value = lv_screen_active();
-		return 0;
+		return NULL;
 	}
+
+	return old_prevs;
+}
+
+void add_to_activity_manager_prevs(activity_manager_ctx_t* ctx, lv_screen_node_t* old_prevs) {
+	ctx->prevs->prev = old_prevs;
+	ctx->prevs->value = lv_screen_active();
 }
 
 void destroy_activity_manager_prevs(activity_manager_ctx_t* ctx) {
@@ -205,15 +208,22 @@ int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_resu
 	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
 	
 	lv_obj_t* screen;
+	lv_screen_node_t* old_prevs;
 	
+	if (activity_ctx == NULL || ctx_bundle == NULL) {
+		return -ENOSR;
+	}
+
 	if (activity != NULL) {
 		if (display == NULL) display = lv_display_get_default();
 		
 		ctx = try_activity_manager(display, apps); // TODO: cleanup
-		if (ctx == NULL) return -EAGAIN;
+		if (ctx == NULL) return -ENOSR;
 
-		if (init_activity_manager_prevs(ctx) != 0) return -EAGAIN;
-		
+		old_prevs = continue_activity_manager_prevs(ctx);
+		if (old_prevs == NULL) return -ENOSR;
+		add_to_activity_manager_prevs(ctx, old_prevs);
+
 		screen = lv_screen_create_on_display(display);
 		lv_screen_load(screen);
 
@@ -270,4 +280,8 @@ int start_debug_activity(apps_t* apps, lv_display_t* display) {
 	intent.activity = NULL;
 	
 	return start_activity_from_intent(apps, &intent, NULL, display);
+}
+
+void go_home() {
+
 }
