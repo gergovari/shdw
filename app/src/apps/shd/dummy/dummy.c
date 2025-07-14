@@ -9,8 +9,6 @@
 
 void shd_dummy_return_cb(int result, void* data, void* user) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)user;
-	activity_ctx_t* activity_ctx = ctx->activity_ctx;
-	lv_obj_t* screen = activity_ctx->screen;
 	int8_t* random = (int8_t*)data;
 	
 	printf("dummy received: %i\n", *random);
