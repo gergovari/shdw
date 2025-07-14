@@ -98,20 +98,25 @@ bool is_intent_filter_match(intent_filter_t* intent_filter, app_t* app, intent_t
 	return false;
 }
 
+void load_previous_screen(activity_manager_ctx_t* ctx) {
+	lv_screen_node_t* prevs = ctx->prevs;
+
+	if (prevs == NULL) {
+		start_home_activity(ctx->apps, lv_display_get_default());
+	} else {
+		lv_screen_load(prevs->value);
+		ctx->prevs = prevs->prev;
+	}
+}
+
 void close_activity(activity_ctx_bundle_t* ctx_bundle) {
 	activity_manager_ctx_t* manager = ctx_bundle->manager;
 	activity_ctx_t* activity_ctx = ctx_bundle->activity;
 	activity_t* activity = activity_ctx->activity;
-
-	if (manager->prevs == NULL) {
-		// TODO: start_home_activity();
-	} else {
-		lv_screen_load(manager->prevs->value);
-		manager->prevs = manager->prevs->prev;
-	}
+	
+	load_previous_screen(manager);
 
 	activity->exit(activity_ctx);
-
 	lv_obj_delete(activity_ctx->screen);
 }
 
@@ -151,6 +156,7 @@ int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_resu
 		ctx = (activity_manager_ctx_t*)lv_display_get_driver_data(display);
 		if (ctx == NULL) {
 			ctx = malloc(sizeof(activity_manager_ctx_t)); // TODO: cleanup, but currently there's no lifecycle for the activity manager...
+			ctx->apps = apps;
 			lv_display_set_driver_data(display, ctx);
 		}
 

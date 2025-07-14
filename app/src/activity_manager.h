@@ -13,8 +13,10 @@ struct lv_screen_node_ts {
 };
 
 typedef struct activity_manager_ctx_t {
-	activity_t* activity;
+	apps_t* apps;
 	lv_screen_node_t* prevs;
+
+	activity_t* activity;
 } activity_manager_ctx_t;
 
 typedef struct activity_ctx_bundle_t {
