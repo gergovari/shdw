@@ -120,8 +120,6 @@ void close_activity(activity_ctx_bundle_t* ctx_bundle) {
 	lv_obj_delete(activity_ctx->screen);
 }
 
-// TODO: void pause_activity...
-
 void finished_activity_cb(activity_ctx_bundle_t* ctx_bundle, int result, void* data) {
 	activity_ctx_t* ctx = ctx_bundle->activity;
 	activity_result_callback_t cb = ctx->result_cb;
@@ -176,7 +174,12 @@ int init_activity_manager_prevs(activity_manager_ctx_t* ctx) {
 }
 
 void destroy_activity_manager_prevs(activity_manager_ctx_t* ctx) {
-	// TODO
+	lv_screen_node_t* prev = ctx->prevs->prev;
+
+	while (ctx->prevs != NULL) {
+		free(ctx->prevs);
+		ctx->prevs = prev;
+	}
 }
 
 void destroy_activity_manager(activity_manager_ctx_t* ctx) {
@@ -209,7 +212,7 @@ int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_resu
 		ctx = try_activity_manager(display, apps); // TODO: cleanup
 		if (ctx == NULL) return -EAGAIN;
 
-		if (init_activity_manager_prevs(ctx) != 0) return -EAGAIN; // TODO: cleanup
+		if (init_activity_manager_prevs(ctx) != 0) return -EAGAIN;
 		
 		screen = lv_screen_create_on_display(display);
 		lv_screen_load(screen);
