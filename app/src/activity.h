@@ -10,20 +10,23 @@ typedef void (*activity_result_callback_t)(int result, void* data, void* user);
 typedef struct apps_t apps_t;
 typedef struct activity_t activity_t;
 
-typedef struct activity_ctx_t {
+typedef struct activity_ctx_ts activity_ctx_t;
+struct activity_ctx_ts {
 	apps_t* apps;
 	void* user;
 
 	lv_display_t* display;
 	lv_obj_t* screen;
 	
+	activity_ctx_t* prev;
+
 	activity_t* activity;
 	activity_callback_t cb;
 	activity_result_callback_t result_cb;
 	void* return_user;
 
 	void* input;
-} activity_ctx_t;
+};
 
 typedef void (*activity_entry_t)(activity_ctx_t* ctx);
 typedef void (*activity_exit_t)(activity_ctx_t* ctx);

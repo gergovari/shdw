@@ -6,17 +6,15 @@
 #include "intent.h"
 #include "app.h"
 
-typedef struct lv_screen_node_ts lv_screen_node_t;
-struct lv_screen_node_ts {
-	lv_obj_t* value;
-	lv_screen_node_t* prev;
+typedef struct activity_ctx_node_ts activity_ctx_node_t;
+struct activity_ctx_node_ts {
+	activity_ctx_t* value;
+	activity_ctx_node_t* prev;
 };
 
 typedef struct activity_manager_ctx_t {
-	apps_t* apps;
-	lv_screen_node_t* prevs;
-
-	activity_t* activity;
+	activity_ctx_node_t* activities;
+	activity_ctx_t* current;
 } activity_manager_ctx_t;
 
 typedef struct activity_ctx_bundle_t {
