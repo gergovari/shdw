@@ -43,3 +43,5 @@ int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_c
 
 int start_home_activity(apps_t* apps, lv_display_t* display);
 int start_debug_activity(apps_t* apps, lv_display_t* display);
+
+int go_back(lv_display_t* display);

@@ -211,6 +211,7 @@ activity_manager_ctx_t* get_activity_manager(lv_display_t* display) {
 
 activity_manager_ctx_t* init_activity_manager(lv_display_t* display) {
 	activity_manager_ctx_t* ctx = malloc(sizeof(activity_manager_ctx_t)); 
+	ctx->current = NULL;
 	ctx->activities = NULL;
 	
 	lv_display_set_driver_data(display, ctx);
@@ -420,4 +421,30 @@ int start_debug_activity(apps_t* apps, lv_display_t* display) {
 	if (display == NULL) display = lv_display_get_default();
 	
 	return start_activity_from_intent(apps, &intent, NULL, display);
+}
+
+int go_back(lv_display_t* display) {
+	activity_manager_ctx_t* ctx;
+	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+	activity_ctx_t* prev;
+	
+	if (ctx_bundle == NULL) {
+		return -ENOSR;
+	} else {
+		if (display == NULL) display = lv_display_get_default();
+
+		ctx = try_activity_manager(display); // TODO: cleanup
+		if (ctx == NULL) return -ENOSR;
+		
+		prev = ctx->current->prev;
+		if (prev != NULL) {
+			ctx_bundle->manager = ctx;
+			ctx_bundle->activity = prev;
+			show_activity(ctx_bundle);
+		}
+
+		free(ctx_bundle);
+
+		return 0;
+	}
 }
