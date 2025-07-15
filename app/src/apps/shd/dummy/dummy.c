@@ -53,12 +53,14 @@ void shd_dummy_new_entry(activity_ctx_t* activity_ctx) {
 	lv_obj_t* list;
 	lv_obj_t* rand_label;
 	lv_obj_t* new_btn;
+	lv_obj_t* back_btn;
 
 	list = lv_list_create(screen);
 	ctx->list = list;
 
 	rand_label = lv_list_add_text(list, "random");
 	new_btn = lv_list_add_button(list, NULL, "New");
+	back_btn = lv_list_add_button(list, NULL, "Back");
 
 	lv_obj_set_user_data(screen, ctx);
 	ctx->random = malloc(sizeof(int8_t));
@@ -66,6 +68,7 @@ void shd_dummy_new_entry(activity_ctx_t* activity_ctx) {
 	ctx->activity_ctx = activity_ctx;
 
 	lv_obj_add_event_cb(new_btn, shd_dummy_new_cb, LV_EVENT_CLICKED, ctx);
+	lv_obj_add_event_cb(back_btn, shd_dummy_exit_cb, LV_EVENT_CLICKED, ctx);
 
 	lv_label_set_text_fmt(rand_label, "%i", *(ctx->random));
 
