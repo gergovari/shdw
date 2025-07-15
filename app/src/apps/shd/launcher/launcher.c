@@ -12,18 +12,14 @@ void shd_launcher_entry_click_cb(lv_event_t *e) {
 }
 
 void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
-	lv_obj_t* cont = lv_menu_cont_create(ctx->root);
-	lv_obj_t* btn = lv_button_create(cont);
-	lv_obj_t* label = lv_label_create(btn);
+	lv_obj_t* btn = lv_list_add_button(ctx->list, NULL, ctx->app->title);;
 	
-	lv_label_set_text(label, ctx->app->title);
 	lv_obj_add_event_cb(btn, shd_launcher_entry_click_cb, LV_EVENT_CLICKED, ctx);
 }
 
 void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
 	lv_obj_t* screen = activity_ctx->screen;
-	lv_obj_t* menu = lv_menu_create(screen);
-	lv_obj_t* root = lv_menu_page_create(menu, NULL);
+	lv_obj_t* list = lv_list_create(screen);
 	lv_obj_t* error_label;
 
 	shd_launcher_ctx_t* ctx = malloc(sizeof(shd_launcher_ctx_t));
@@ -40,8 +36,6 @@ void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
 	
 	lv_obj_set_user_data(screen, ctx);
 	ctx->entries = NULL;
-
-	lv_obj_center(menu);
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_LAUNCHER;
@@ -65,7 +59,7 @@ void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
 			intent_filter_result_node = next_intent_filter_result_node;
 
 			entry_ctx = malloc(sizeof(shd_launcher_entry_ctx_t));
-			entry_ctx->root = root;
+			entry_ctx->list = list;
 			entry_ctx->apps = apps;
 			entry_ctx->app = app;
 			entry_ctx->activity = activity;
@@ -81,8 +75,6 @@ void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
 			ctx->entries->value = entry_ctx;
 		};
 	}
-
-	lv_menu_set_page(menu, root);
 }
 
 void shd_launcher_main_exit(activity_ctx_t* activity_ctx) {

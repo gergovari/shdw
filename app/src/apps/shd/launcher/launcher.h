@@ -9,7 +9,7 @@
 extern app_t shd_launcher;
 
 typedef struct shd_launcher_entry_ctx_t {
-	lv_obj_t* root;
+	lv_obj_t* list;
 
 	apps_t* apps;
 	app_t* app;
