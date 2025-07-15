@@ -38,7 +38,6 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 			while (activity_node != NULL) {
 				activity = activity_node->activity;
 				
-				printf("%s ?= %s\n", intent->activity, activity->id);
 				if (strcmp(intent->activity, activity->id) == 0) {
 					intent_filter_result_node = malloc(sizeof(intent_filter_result_node_t));
 
@@ -389,8 +388,6 @@ int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_c
 	intent_filter_result_node_t* intent_filter_result_node = search_intent_filters(apps, (intent_filter_func_t)is_intent_filter_match, intent);
 	
 	if (intent_filter_result_node == NULL) return -ENOSYS;
-
-	printf("%s -> %s\n", intent->activity, intent_filter_result_node->intent_filter_result.activity->id);
 
 	// TODO: allow user to pick if multiple activities match
 	ret = start_activity_from_intent_filter_result(
