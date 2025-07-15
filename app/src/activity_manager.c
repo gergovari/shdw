@@ -149,14 +149,20 @@ void delete_activity_ctx_from_manager(activity_ctx_bundle_t* ctx_bundle) {
 	}
 }
 
-void add_activity_ctx_to_manager(activity_ctx_bundle_t* ctx_bundle) {
+int add_activity_ctx_to_manager(activity_ctx_bundle_t* ctx_bundle) {
 	activity_manager_ctx_t* manager = ctx_bundle->manager;
 	activity_ctx_t* activity = ctx_bundle->activity;
 	activity_ctx_node_t* new = malloc(sizeof(activity_ctx_node_t));
 	
-	new->prev = manager->activities;
-	new->value = activity;
-	manager->activities = new;
+	if (new == NULL) {
+		return -ENOSR;
+	} else {
+		new->prev = manager->activities;
+		new->value = activity;
+		manager->activities = new;
+	}
+	
+	return 0;
 }
 
 void show_activity(activity_ctx_bundle_t* ctx_bundle) {
@@ -200,6 +206,7 @@ activity_manager_ctx_t* get_activity_manager(lv_display_t* display) {
 
 activity_manager_ctx_t* init_activity_manager(lv_display_t* display) {
 	activity_manager_ctx_t* ctx = malloc(sizeof(activity_manager_ctx_t)); 
+	ctx->activities = NULL;
 	
 	lv_display_set_driver_data(display, ctx);
 	return ctx;
@@ -243,51 +250,135 @@ lv_obj_t* lv_screen_create_on_display(lv_display_t* display) {
 	return screen;
 }
 
+activity_ctx_t* find_activity_ctx_in_manager(activity_manager_ctx_t* ctx, activity_t* activity) {
+	printf("start, before node\n");
+	activity_ctx_node_t* node = ctx->activities;
+	printf("after node\n");
+
+	while (node != NULL) {
+		printf("in loop, before check\n");
+		if (node->value->activity == activity) {
+			printf("in loop, check true, before return\n");
+			return node->value;
+		}
+		printf("in loop, after check\n");
+
+		printf("in loop, before progressing\n");
+		node = node->prev;
+		printf("in loop, after progressing\n");
+	}
+	
+	printf("after loop, before return\n");
+
+	return NULL;
+}
+
+int start_existing_activity(activity_manager_ctx_t* ctx, activity_t* activity, void* input, void* user) {
+	int ret = 0;
+	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+	activity_ctx_t* activity_ctx;
+	
+	if (ctx_bundle == NULL) {
+		return -ENOSR;
+	} else {
+		activity_ctx = find_activity_ctx_in_manager(ctx, activity);
+		if (activity_ctx == NULL) {
+			ret = -ESRCH;
+		} else {
+			ctx_bundle->manager = ctx;
+			ctx_bundle->activity = activity_ctx;
+			
+			activity_ctx->input = input;
+			activity_ctx->return_user = user;
+			
+			//activity->unpause(activity_ctx);
+			show_activity(ctx_bundle);
+		}
+	}
+
+	free(ctx_bundle);
+	return ret;
+}
+
+int start_new_activity(activity_manager_ctx_t* ctx, 
+		activity_t* activity, 
+		apps_t* apps, app_t* app, 
+		activity_result_callback_t cb, void* input,  void* user,
+		lv_display_t* display) {
+	lv_obj_t* screen;
+	activity_ctx_t* activity_ctx;
+	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+	
+	if (ctx_bundle == NULL) {
+		return -ENOSR;
+	} else {
+		if (display == NULL) display = lv_display_get_default();
+
+		ctx_bundle->manager = ctx;
+		ctx_bundle->activity = malloc(sizeof(activity_ctx_t));
+		activity_ctx = ctx_bundle->activity; 
+		
+		if (activity_ctx == NULL) {
+			return -ENOSR;
+		} else {
+			screen = lv_screen_create_on_display(display);
+			
+			if (screen == NULL) {
+				free(activity_ctx);
+				return -ENOSR;
+			} else {
+				activity_ctx->apps = apps;
+				activity_ctx->app = app;
+				activity_ctx->user = ctx_bundle;
+				activity_ctx->display = display;
+				activity_ctx->screen = screen;
+				activity_ctx->prev = ctx->current;
+				activity_ctx->activity = activity;
+				activity_ctx->cb = (void (*)(void*, int, void*))finished_activity_cb;
+				activity_ctx->result_cb = cb;
+				activity_ctx->return_user = user;
+				activity_ctx->input = input;
+
+				if (add_activity_ctx_to_manager(ctx_bundle) != 0) {
+					free(activity_ctx);
+					return -ENOSR;
+				}
+				
+				activity->entry(activity_ctx);
+				show_activity(ctx_bundle);
+			}
+		}
+	}
+	
+	return 0;
+}
+
 // FIXME: memory leak lvgl draw buffer?
 // TODO: better activity lifecycles to have enough memory...
 int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
+	int ret = 0;
 	activity_manager_ctx_t* ctx; 
-	activity_ctx_t* activity_ctx = malloc(sizeof(activity_ctx_t));
-	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
-	
-	lv_obj_t* screen;
-	
-	if (activity_ctx == NULL || ctx_bundle == NULL) {
-		return -ENOSR;
-	}
 
-	if (activity != NULL) {
+	if (activity == NULL) {
+		return -ENOSYS;
+	} else {
 		if (display == NULL) display = lv_display_get_default();
 		
 		ctx = try_activity_manager(display); // TODO: cleanup
 		if (ctx == NULL) return -ENOSR;
-		
-		// TODO: if activity is ACTION_MAIN, first search if it's already running
 
-		ctx_bundle->manager = ctx;
-		ctx_bundle->activity = activity_ctx;
+		if (is_activity_has_action(activity, ACTION_MAIN)) {
+			ret = start_existing_activity(ctx, activity, input, user);
+			
+			if (ret != -ESRCH) {
+				return ret;
+			} 
+		}
 
-		screen = lv_screen_create_on_display(display);
-
-		activity_ctx->apps = apps;
-		activity_ctx->app = app;
-		activity_ctx->user = ctx_bundle;
-		activity_ctx->display = display;
-		activity_ctx->screen = screen;
-		activity_ctx->prev = ctx->current;
-		activity_ctx->activity = activity;
-		activity_ctx->cb = (void (*)(void*, int, void*))finished_activity_cb;
-		activity_ctx->result_cb = cb;
-		activity_ctx->return_user = user;
-		activity_ctx->input = input;
-		add_activity_ctx_to_manager(ctx_bundle);
-		
-		activity->entry(activity_ctx);
-		show_activity(ctx_bundle);
-
-		return 0;
+		ret = start_new_activity(ctx, activity, apps, app, cb, input, user, display);
 	}
-	return -ENOSYS;
+
+	return ret;
 }
 
 int start_activity_from_intent_filter_result(apps_t* apps,
