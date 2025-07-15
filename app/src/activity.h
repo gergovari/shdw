@@ -8,11 +8,13 @@ typedef void (*activity_callback_t)(void* user, int result, void* data);
 typedef void (*activity_result_callback_t)(int result, void* data, void* user);
 
 typedef struct apps_t apps_t;
+typedef struct app_t app_t;
 typedef struct activity_t activity_t;
 
 typedef struct activity_ctx_ts activity_ctx_t;
 struct activity_ctx_ts {
 	apps_t* apps;
+	app_t* app;
 	void* user;
 
 	lv_display_t* display;

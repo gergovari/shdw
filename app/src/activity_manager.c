@@ -134,10 +134,16 @@ void delete_activity_ctx_from_manager(activity_ctx_bundle_t* ctx_bundle) {
 
 	while (node != NULL) {
 		if (node->value == activity) {
-			if (last_node != NULL) last_node->prev = node->prev;
+			if (last_node == NULL) {
+				manager->activities = node->prev;
+			} else {
+				last_node->prev = node->prev;
+			}
+
 			free(node);
 			break;
 		}
+
 		last_node = node;
 		node = node->prev;
 	}
@@ -151,6 +157,8 @@ void add_activity_ctx_to_manager(activity_ctx_bundle_t* ctx_bundle) {
 	new->prev = manager->activities;
 	new->value = activity;
 	manager->activities = new;
+
+	printf("ADDED TO ACTIVITY MANAGER: %p\n", new->value);
 }
 
 void show_activity(activity_ctx_bundle_t* ctx_bundle) {
@@ -184,8 +192,8 @@ void finished_activity_cb(activity_ctx_bundle_t* ctx_bundle, int result, void* d
 	close_activity(ctx_bundle);
 	if (cb != NULL) cb(result, data, ctx->return_user);
 
-	free(ctx);
-	free(ctx_bundle);
+	//free(ctx);
+	//free(ctx_bundle);
 }
 
 activity_manager_ctx_t* get_activity_manager(lv_display_t* display) {
@@ -265,6 +273,7 @@ int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_resu
 		screen = lv_screen_create_on_display(display);
 
 		activity_ctx->apps = apps;
+		activity_ctx->app = app;
 		activity_ctx->user = ctx_bundle;
 		activity_ctx->display = display;
 		activity_ctx->screen = screen;
