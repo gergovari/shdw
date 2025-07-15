@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <zephyr/random/random.h>
+
 #include <lvgl.h>
 
 void shd_launcher_entry_click_cb(lv_event_t *e) {
@@ -34,6 +36,10 @@ void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
 	app_t* app;
 	activity_t* activity;
 	
+	lv_obj_t* rand_label = lv_list_add_text(list, "random");
+
+	lv_label_set_text_fmt(rand_label, "%i (%p)", sys_rand8_get(), activity_ctx);
+
 	lv_obj_set_user_data(screen, ctx);
 	ctx->entries = NULL;
 	

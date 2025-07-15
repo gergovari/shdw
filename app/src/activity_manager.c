@@ -404,6 +404,8 @@ int start_home_activity(apps_t* apps, lv_display_t* display) {
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_HOME;
 	intent.activity = NULL;
+
+	if (display == NULL) display = lv_display_get_default();
 	
 	return start_activity_from_intent(apps, &intent, NULL, display);
 }
@@ -414,6 +416,8 @@ int start_debug_activity(apps_t* apps, lv_display_t* display) {
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_DEBUG;
 	intent.activity = NULL;
+
+	if (display == NULL) display = lv_display_get_default();
 	
 	return start_activity_from_intent(apps, &intent, NULL, display);
 }
