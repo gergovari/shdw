@@ -11,10 +11,10 @@ void shd_dummy_return_cb(int result, void* data, void* user) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)user;
 	int8_t* random = (int8_t*)data;
 	
-	printf("dummy received: %i\n", *random);
+	printf("dummy received: %i (list: %p)\n", *random, ctx->list);
 	lv_obj_t* return_label = lv_list_add_text(ctx->list, "return");
-	lv_label_set_text_fmt(return_label, "return: %i, %i\n", result, *random);
-	
+	lv_label_set_text_fmt(return_label, "return: %i, %i", result, *random);
+
 	free(random);
 }
 
@@ -41,7 +41,7 @@ void shd_dummy_exit_cb(lv_event_t* e) {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-	printf("dummy sending: %i\n", *(ctx->random));
+	printf("dummy sending: %i (list: %p)\n", *(ctx->random), ctx->list);
 	cb(user, 0, (void*)ctx->random);
 #pragma GCC diagnostic pop
 }
@@ -55,8 +55,8 @@ void shd_dummy_main_entry(activity_ctx_t* activity_ctx) {
 	lv_obj_t* new_btn;
 	lv_obj_t* exit_btn;
 
-	ctx->list = lv_list_create(screen);
-	list = ctx->list;
+	list = lv_list_create(screen);
+	ctx->list = list;
 
 	rand_label = lv_list_add_text(list, "random");
 	new_btn = lv_list_add_button(list, NULL, "New");
@@ -72,7 +72,7 @@ void shd_dummy_main_entry(activity_ctx_t* activity_ctx) {
 
 	lv_label_set_text_fmt(rand_label, "%i", *(ctx->random));
 
-	printf("dummy opened!\n");
+	printf("dummy opened! (list: %p)\n", ctx->list);
 }
 void shd_dummy_main_exit(activity_ctx_t* activity_ctx) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)lv_obj_get_user_data(activity_ctx->screen);

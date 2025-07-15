@@ -157,8 +157,6 @@ void add_activity_ctx_to_manager(activity_ctx_bundle_t* ctx_bundle) {
 	new->prev = manager->activities;
 	new->value = activity;
 	manager->activities = new;
-
-	printf("ADDED TO ACTIVITY MANAGER: %p\n", new->value);
 }
 
 void show_activity(activity_ctx_bundle_t* ctx_bundle) {
@@ -167,7 +165,6 @@ void show_activity(activity_ctx_bundle_t* ctx_bundle) {
 
 	manager->current = activity;
 	lv_screen_load(activity->screen);
-	activity->activity->entry(activity);
 }
 
 void close_activity(activity_ctx_bundle_t* ctx_bundle) {
@@ -192,8 +189,8 @@ void finished_activity_cb(activity_ctx_bundle_t* ctx_bundle, int result, void* d
 	close_activity(ctx_bundle);
 	if (cb != NULL) cb(result, data, ctx->return_user);
 
-	//free(ctx);
-	//free(ctx_bundle);
+	free(ctx);
+	free(ctx_bundle);
 }
 
 activity_manager_ctx_t* get_activity_manager(lv_display_t* display) {
@@ -285,6 +282,7 @@ int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_resu
 		activity_ctx->input = input;
 		add_activity_ctx_to_manager(ctx_bundle);
 		
+		activity->entry(activity_ctx);
 		show_activity(ctx_bundle);
 
 		return 0;
