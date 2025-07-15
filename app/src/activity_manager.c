@@ -18,7 +18,7 @@ void destroy_intent_filter_results(intent_filter_result_node_t* node) {
 }
 
 intent_filter_result_node_t* search_intent_filters(apps_t* apps, 
-		bool (*func)(intent_filter_t*, app_t*, void*), void* user) {
+		bool (*func)(intent_filter_t*, app_t*, intent_t*), intent_t* intent) {
 	activity_node_t* activity_node;
 	activity_t* activity;
 	app_t* app;
@@ -34,6 +34,30 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 		app = apps->list[i];
 		activity_node = app->activities;
 		
+		if (intent->activity != NULL) {
+			while (activity_node != NULL) {
+				activity = activity_node->activity;
+				
+				printf("%s ?= %s\n", intent->activity, activity->id);
+				if (strcmp(intent->activity, activity->id) == 0) {
+					intent_filter_result_node = malloc(sizeof(intent_filter_result_node_t));
+
+					if (intent_filter_result_node != NULL) {
+						intent_filter_result_node->next = NULL;
+
+						intent_filter_result.app = app;
+						intent_filter_result.activity = activity;
+						intent_filter_result_node->intent_filter_result = intent_filter_result;
+					}
+			
+					return intent_filter_result_node;
+				}
+
+				activity_node = activity_node->next;
+			}
+			continue;
+		}
+		
 		while (activity_node != NULL) {
 			activity = activity_node->activity;
 			intent_filter_node = activity->intent_filters;
@@ -41,7 +65,7 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 			while (intent_filter_node != NULL) {
 				intent_filter = intent_filter_node->intent_filter;
 
-				if (func(intent_filter, app, user)) {
+				if (func(intent_filter, app, intent)) {
 					if (intent_filter_result_node == NULL) {
 						intent_filter_result_node = malloc(sizeof(intent_filter_result_node_t));
 					} else {
@@ -101,27 +125,9 @@ bool is_activity_has_action(activity_t* activity, action_t action) {
 }
 
 bool is_intent_filter_match(intent_filter_t* intent_filter, app_t* app, intent_t* intent) {
-	activity_node_t* node;
-	activity_t* activity;
-
-	if (intent->activity == NULL) {
-		// TODO: data check
-		if (
-			(intent_filter->action & intent->action) > 0 && 
-			(intent_filter->category & intent->category) >= intent->category
-		) return true;	
-		
-	} else {
-		node = app->activities;
-		
-		while (node != NULL) {
-			activity = node->activity;
-			if (strcmp(intent->activity, activity->id) == 0) return true;
-			node = node->next;
-		}
-
-	}
-
+	// TODO: data check
+	if ((intent_filter->action & intent->action) > 0 && 
+		(intent_filter->category & intent->category) >= intent->category) return true;	
 	return false;
 }
 
@@ -251,24 +257,15 @@ lv_obj_t* lv_screen_create_on_display(lv_display_t* display) {
 }
 
 activity_ctx_t* find_activity_ctx_in_manager(activity_manager_ctx_t* ctx, activity_t* activity) {
-	printf("start, before node\n");
 	activity_ctx_node_t* node = ctx->activities;
-	printf("after node\n");
 
 	while (node != NULL) {
-		printf("in loop, before check\n");
 		if (node->value->activity == activity) {
-			printf("in loop, check true, before return\n");
 			return node->value;
 		}
-		printf("in loop, after check\n");
 
-		printf("in loop, before progressing\n");
 		node = node->prev;
-		printf("in loop, after progressing\n");
 	}
-	
-	printf("after loop, before return\n");
 
 	return NULL;
 }
@@ -390,13 +387,15 @@ int start_activity_from_intent_filter_result(apps_t* apps,
 int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback_t cb, lv_display_t* display) {
 	int ret = 0;
 	intent_filter_result_node_t* intent_filter_result_node = search_intent_filters(apps, (intent_filter_func_t)is_intent_filter_match, intent);
-
+	
 	if (intent_filter_result_node == NULL) return -ENOSYS;
+
+	printf("%s -> %s\n", intent->activity, intent_filter_result_node->intent_filter_result.activity->id);
 
 	// TODO: allow user to pick if multiple activities match
 	ret = start_activity_from_intent_filter_result(
 			apps, &intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user, display);
-	
+
 	destroy_intent_filter_results(intent_filter_result_node); // TODO: if we decide to iterate here then do the freeing there
 
 	return ret;

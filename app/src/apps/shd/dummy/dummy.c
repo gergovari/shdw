@@ -24,12 +24,12 @@ void shd_dummy_new_cb(lv_event_t* e) {
 	intent_t intent;
 	int ret;
 
-	intent.activity = "shd.dummy.main"; // TODO: don't hardcode id
+	intent.activity = "shd.dummy.new";
 	intent.user = ctx;
 
 	ret = start_activity_from_intent(activity_ctx->apps, &intent, (activity_result_callback_t)shd_dummy_return_cb, activity_ctx->display);
 	if (ret != 0) {
-		printf("dummy couldn't start new activity!\n");
+		printf("dummy couldn't start new activity! (ret: %i)\n", ret);
 	}
 }
 
@@ -44,6 +44,39 @@ void shd_dummy_exit_cb(lv_event_t* e) {
 	printf("dummy sending: %i (list: %p)\n", *(ctx->random), ctx->list);
 	cb(user, 0, (void*)ctx->random);
 #pragma GCC diagnostic pop
+}
+
+void shd_dummy_new_entry(activity_ctx_t* activity_ctx) {
+	shd_dummy_ctx_t* ctx = malloc(sizeof(shd_dummy_ctx_t));
+
+	lv_obj_t* screen = activity_ctx->screen;
+	lv_obj_t* list;
+	lv_obj_t* rand_label;
+	lv_obj_t* new_btn;
+
+	list = lv_list_create(screen);
+	ctx->list = list;
+
+	rand_label = lv_list_add_text(list, "random");
+	new_btn = lv_list_add_button(list, NULL, "New");
+
+	lv_obj_set_user_data(screen, ctx);
+	ctx->random = malloc(sizeof(int8_t));
+	*(ctx->random) = sys_rand8_get();
+	ctx->activity_ctx = activity_ctx;
+
+	lv_obj_add_event_cb(new_btn, shd_dummy_new_cb, LV_EVENT_CLICKED, ctx);
+
+	lv_label_set_text_fmt(rand_label, "%i", *(ctx->random));
+
+	printf("new dummy opened!\n");
+}
+void shd_dummy_new_exit(activity_ctx_t* activity_ctx) {
+	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)lv_obj_get_user_data(activity_ctx->screen);
+
+	free(ctx);
+
+	printf("new dummy closed.\n");
 }
 
 void shd_dummy_main_entry(activity_ctx_t* activity_ctx) {
@@ -72,7 +105,7 @@ void shd_dummy_main_entry(activity_ctx_t* activity_ctx) {
 
 	lv_label_set_text_fmt(rand_label, "%i", *(ctx->random));
 
-	printf("dummy opened! (list: %p)\n", ctx->list);
+	printf("dummy opened!\n");
 }
 void shd_dummy_main_exit(activity_ctx_t* activity_ctx) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)lv_obj_get_user_data(activity_ctx->screen);
@@ -83,26 +116,39 @@ void shd_dummy_main_exit(activity_ctx_t* activity_ctx) {
 	printf("dummy closed.\n");
 }
 
-intent_filter_t shd_dummy_filter = {
+intent_filter_t shd_dummy_main_filter = {
 	.action = ACTION_MAIN,
 	.category = CATEGORY_LAUNCHER
 };
-intent_filter_node_t shd_dummy_intent_filter_node = { 
-	.intent_filter = &shd_dummy_filter, 
-	.next = NULL 
+
+intent_filter_node_t shd_dummy_main_intent_filter_node = { 
+	.intent_filter = &shd_dummy_main_filter, 
+	.next = NULL
 };
+
 activity_t shd_dummy_main = {
 	.id = "shd.dummy.main",
-	.intent_filters = &shd_dummy_intent_filter_node,
+	.intent_filters = &shd_dummy_main_intent_filter_node,
 	.entry = shd_dummy_main_entry,
 	.exit = shd_dummy_main_exit
 };
-activity_node_t shd_dummy_activity_node = { 
-	.activity = &shd_dummy_main, 
+activity_t shd_dummy_new = {
+	.id = "shd.dummy.new",
+	.entry = shd_dummy_new_entry,
+	.exit = shd_dummy_new_exit
+};
+
+activity_node_t shd_dummy_new_activity_node = { 
+	.activity = &shd_dummy_new, 
 	.next = NULL 
 };
+activity_node_t shd_dummy_main_activity_node = { 
+	.activity = &shd_dummy_main, 
+	.next = &shd_dummy_new_activity_node
+};
+
 app_t shd_dummy = {
 	.id = "shd.dummy",
 	.title = "Dummy",
-	.activities = &shd_dummy_activity_node
+	.activities = &shd_dummy_main_activity_node
 };
