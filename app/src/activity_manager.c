@@ -187,7 +187,7 @@ void close_activity(activity_ctx_bundle_t* ctx_bundle) {
 	show_activity(ctx_bundle);
 	ctx_bundle->activity = activity_ctx;
 
-	activity->exit(activity_ctx);
+	if (activity->exit != NULL) activity->exit(activity_ctx);
 	lv_obj_delete(activity_ctx->screen);
 	
 	delete_activity_ctx_from_manager(ctx_bundle);
@@ -283,7 +283,7 @@ int start_existing_activity(activity_ctx_bundle_t* ctx_bundle, activity_t* activ
 		activity_ctx->input = input;
 		activity_ctx->return_user = user;
 		
-		//activity->unpause(activity_ctx);
+		//if (activity->unpause != NULL) activity->unpause(activity_ctx);
 	}
 
 	return ret;
@@ -330,7 +330,7 @@ int start_new_activity(activity_ctx_bundle_t* ctx_bundle,
 				return -ENOSR;
 			}
 			
-			activity->entry(activity_ctx);
+			if(activity->entry != NULL) activity->entry(activity_ctx);
 		}
 	}
 	
@@ -341,7 +341,7 @@ void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
 	activity_ctx_t* activity_ctx = ctx_bundle->activity;
 	activity_t* activity = activity_ctx->activity;
 
-	//activity->pause(activity_ctx);
+	//if (activity->pause != NULL) activity->pause(activity_ctx);
 }
 
 // FIXME: memory leak lvgl draw buffer?
