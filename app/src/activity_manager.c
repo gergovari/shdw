@@ -270,80 +270,67 @@ activity_ctx_t* find_activity_ctx_in_manager(activity_manager_ctx_t* ctx, activi
 	return NULL;
 }
 
-int start_existing_activity(activity_manager_ctx_t* ctx, activity_t* activity, void* input, void* user) {
+int start_existing_activity(activity_ctx_bundle_t* ctx_bundle, activity_t* activity, void* input, void* user) {
 	int ret = 0;
-	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
 	activity_ctx_t* activity_ctx;
 	
-	if (ctx_bundle == NULL) {
-		return -ENOSR;
+	activity_ctx = find_activity_ctx_in_manager(ctx_bundle->manager, activity);
+	if (activity_ctx == NULL) {
+		ret = -ESRCH;
 	} else {
-		activity_ctx = find_activity_ctx_in_manager(ctx, activity);
-		if (activity_ctx == NULL) {
-			ret = -ESRCH;
-		} else {
-			ctx_bundle->manager = ctx;
-			ctx_bundle->activity = activity_ctx;
-			
-			activity_ctx->input = input;
-			activity_ctx->return_user = user;
-			
-			//activity->unpause(activity_ctx);
-			show_activity(ctx_bundle);
-		}
+		ctx_bundle->activity = activity_ctx;
+		
+		activity_ctx->input = input;
+		activity_ctx->return_user = user;
+		
+		//activity->unpause(activity_ctx);
 	}
 
-	free(ctx_bundle);
 	return ret;
 }
 
-int start_new_activity(activity_manager_ctx_t* ctx, 
+int start_new_activity(activity_ctx_bundle_t* ctx_bundle, 
 		activity_t* activity, 
 		apps_t* apps, app_t* app, 
 		activity_result_callback_t cb, void* input,  void* user,
 		lv_display_t* display) {
 	lv_obj_t* screen;
 	activity_ctx_t* activity_ctx;
-	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
 	
-	if (ctx_bundle == NULL) {
+	if (display == NULL) display = lv_display_get_default();
+
+	ctx_bundle->activity = malloc(sizeof(activity_ctx_t));
+	activity_ctx = ctx_bundle->activity; 
+	
+	if (activity_ctx == NULL) {
 		return -ENOSR;
 	} else {
-		if (display == NULL) display = lv_display_get_default();
-
-		ctx_bundle->manager = ctx;
-		ctx_bundle->activity = malloc(sizeof(activity_ctx_t));
-		activity_ctx = ctx_bundle->activity; 
+		screen = lv_screen_create_on_display(display);
 		
-		if (activity_ctx == NULL) {
+		if (screen == NULL) {
+			free(activity_ctx);
+
 			return -ENOSR;
 		} else {
-			screen = lv_screen_create_on_display(display);
-			
-			if (screen == NULL) {
-				free(activity_ctx);
-				return -ENOSR;
-			} else {
-				activity_ctx->apps = apps;
-				activity_ctx->app = app;
-				activity_ctx->user = ctx_bundle;
-				activity_ctx->display = display;
-				activity_ctx->screen = screen;
-				activity_ctx->prev = ctx->current;
-				activity_ctx->activity = activity;
-				activity_ctx->cb = (void (*)(void*, int, void*))finished_activity_cb;
-				activity_ctx->result_cb = cb;
-				activity_ctx->return_user = user;
-				activity_ctx->input = input;
+			activity_ctx->apps = apps;
+			activity_ctx->app = app;
+			activity_ctx->user = ctx_bundle;
+			activity_ctx->display = display;
+			activity_ctx->screen = screen;
+			activity_ctx->prev = ctx_bundle->manager->current;
+			activity_ctx->activity = activity;
+			activity_ctx->cb = (void (*)(void*, int, void*))finished_activity_cb;
+			activity_ctx->result_cb = cb;
+			activity_ctx->return_user = user;
+			activity_ctx->input = input;
 
-				if (add_activity_ctx_to_manager(ctx_bundle) != 0) {
-					free(activity_ctx);
-					return -ENOSR;
-				}
-				
-				activity->entry(activity_ctx);
-				show_activity(ctx_bundle);
+			if (add_activity_ctx_to_manager(ctx_bundle) != 0) {
+				free(activity_ctx);
+
+				return -ENOSR;
 			}
+			
+			activity->entry(activity_ctx);
 		}
 	}
 	
@@ -355,25 +342,35 @@ int start_new_activity(activity_manager_ctx_t* ctx,
 int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
 	int ret = 0;
 	activity_manager_ctx_t* ctx; 
+	activity_ctx_bundle_t* ctx_bundle;
+	bool free_bundle = false;
 
 	if (activity == NULL) {
 		return -ENOSYS;
 	} else {
+		ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+
 		if (display == NULL) display = lv_display_get_default();
 		
 		ctx = try_activity_manager(display); // TODO: cleanup
 		if (ctx == NULL) return -ENOSR;
+		ctx_bundle->manager = ctx;
 
 		if (is_activity_has_action(activity, ACTION_MAIN)) {
-			ret = start_existing_activity(ctx, activity, input, user);
-			
-			if (ret != -ESRCH) {
-				return ret;
-			} 
-		}
+			ret = start_existing_activity(ctx_bundle, activity, input, user);
 
-		ret = start_new_activity(ctx, activity, apps, app, cb, input, user, display);
+			if (ret == -ESRCH) {
+				ret = start_new_activity(ctx_bundle, activity, apps, app, cb, input, user, display);
+			} else {
+				free_bundle = true;
+			}
+		} else {
+			ret = start_new_activity(ctx_bundle, activity, apps, app, cb, input, user, display);
+		}
 	}
+	
+	if (ret == 0) show_activity(ctx_bundle);
+	if (free_bundle) free(ctx_bundle);
 
 	return ret;
 }
