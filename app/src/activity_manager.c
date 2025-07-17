@@ -179,6 +179,7 @@ void show_activity(activity_ctx_bundle_t* ctx_bundle) {
 }
 
 void take_snapshot(activity_ctx_t* ctx) {
+	if (ctx->snapshot != NULL) lv_draw_buf_destroy(ctx->snapshot);
 	ctx->snapshot = lv_snapshot_take(ctx->screen, LV_COLOR_FORMAT_ARGB8888);
 }
 
