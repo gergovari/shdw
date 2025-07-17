@@ -60,6 +60,8 @@ activity_t shd_clock_main = {
 	.id = "shd.clock.main",
 	.intent_filters = &shd_clock_intent_filter_node,
 	.entry = shd_clock_main_entry,
+	.pause = NULL,
+	.unpause = NULL,
 	.exit = shd_clock_main_exit
 };
 activity_node_t shd_clock_activity_node = { 

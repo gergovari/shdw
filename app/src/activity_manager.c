@@ -178,6 +178,20 @@ void show_activity(activity_ctx_bundle_t* ctx_bundle) {
 	lv_screen_load(activity->screen);
 }
 
+void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
+	activity_ctx_t* activity_ctx = ctx_bundle->activity;
+	activity_t* activity = activity_ctx->activity;
+
+	if (activity->pause != NULL) activity->pause(activity_ctx);
+}
+
+void unpause_activity(activity_ctx_bundle_t* ctx_bundle) {
+	activity_ctx_t* activity_ctx = ctx_bundle->activity;
+	activity_t* activity = activity_ctx->activity;
+
+	if (activity->unpause != NULL) activity->unpause(activity_ctx);
+}
+
 void close_activity(activity_ctx_bundle_t* ctx_bundle) {
 	activity_ctx_t* activity_ctx = ctx_bundle->activity;
 	activity_t* activity = activity_ctx->activity;
@@ -283,7 +297,7 @@ int start_existing_activity(activity_ctx_bundle_t* ctx_bundle, activity_t* activ
 		activity_ctx->input = input;
 		activity_ctx->return_user = user;
 		
-		//if (activity->unpause != NULL) activity->unpause(activity_ctx);
+		unpause_activity(ctx_bundle);
 	}
 
 	return ret;
@@ -337,13 +351,6 @@ int start_new_activity(activity_ctx_bundle_t* ctx_bundle,
 	return 0;
 }
 
-void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-
-	//if (activity->pause != NULL) activity->pause(activity_ctx);
-}
-
 // FIXME: memory leak lvgl draw buffer?
 // TODO: better activity lifecycles to have enough memory...
 int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
@@ -378,11 +385,13 @@ int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_resu
 	}
 	
 	if (ret == 0) {
-		// NOTE: we temporarily repurpose the ctx_bundle
-		activity_ctx = ctx_bundle->activity;
-		ctx_bundle->activity = ctx->current;
-		pause_activity(ctx_bundle);
-		ctx_bundle->activity = activity_ctx;
+		if (ctx->current != NULL) {
+			// NOTE: we temporarily repurpose the ctx_bundle
+			activity_ctx = ctx_bundle->activity;
+			ctx_bundle->activity = ctx->current;
+			pause_activity(ctx_bundle);
+			ctx_bundle->activity = activity_ctx;
+		}
 		
 		show_activity(ctx_bundle);
 	}
@@ -439,6 +448,7 @@ int start_debug_activity(apps_t* apps, lv_display_t* display) {
 int go_back(lv_display_t* display) {
 	activity_manager_ctx_t* ctx;
 	activity_ctx_bundle_t* ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+	activity_ctx_t* current;
 	activity_ctx_t* prev;
 	
 	if (ctx_bundle == NULL) {
@@ -449,11 +459,18 @@ int go_back(lv_display_t* display) {
 		ctx = try_activity_manager(display); // TODO: cleanup
 		if (ctx == NULL) return -ENOSR;
 		
-		prev = ctx->current->prev;
+		current = ctx->current;
+		prev = current->prev;
+
 		if (prev != NULL) {
 			ctx_bundle->manager = ctx;
+
 			ctx_bundle->activity = prev;
+			unpause_activity(ctx_bundle);
 			show_activity(ctx_bundle);
+			
+			ctx_bundle->activity = current;
+			pause_activity(ctx_bundle);
 		}
 
 		free(ctx_bundle);

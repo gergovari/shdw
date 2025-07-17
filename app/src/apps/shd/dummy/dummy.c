@@ -82,6 +82,14 @@ void shd_dummy_new_exit(activity_ctx_t* activity_ctx) {
 	printf("new dummy closed.\n");
 }
 
+void shd_dummy_main_pause(activity_ctx_t* activity_ctx) {
+	printf("dummy paused.\n");
+}
+
+void shd_dummy_main_unpause(activity_ctx_t* activity_ctx) {
+	printf("dummy unpaused.\n");
+}
+
 void shd_dummy_main_entry(activity_ctx_t* activity_ctx) {
 	shd_dummy_ctx_t* ctx = malloc(sizeof(shd_dummy_ctx_t));
 
@@ -133,11 +141,15 @@ activity_t shd_dummy_main = {
 	.id = "shd.dummy.main",
 	.intent_filters = &shd_dummy_main_intent_filter_node,
 	.entry = shd_dummy_main_entry,
+	.pause = shd_dummy_main_pause,
+	.unpause = shd_dummy_main_unpause,
 	.exit = shd_dummy_main_exit
 };
 activity_t shd_dummy_new = {
 	.id = "shd.dummy.new",
 	.entry = shd_dummy_new_entry,
+	.pause = shd_dummy_main_pause,
+	.unpause = shd_dummy_main_unpause,
 	.exit = shd_dummy_new_exit
 };
 

@@ -49,6 +49,8 @@ activity_t shd_debug_main = {
 	.id = "shd.debug.main",
 	.intent_filters = &shd_debug_intent_filter_node,
 	.entry = shd_debug_main_entry,
+	.pause = NULL,
+	.unpause = NULL,
 	.exit = shd_debug_main_exit
 };
 activity_node_t shd_debug_activity_node = { 

@@ -31,6 +31,8 @@ struct activity_ctx_ts {
 };
 
 typedef void (*activity_entry_t)(activity_ctx_t* ctx);
+typedef void (*activity_pause_t)(activity_ctx_t* ctx);
+typedef void (*activity_unpause_t)(activity_ctx_t* ctx);
 typedef void (*activity_exit_t)(activity_ctx_t* ctx);
 
 typedef struct activity_t {
@@ -38,6 +40,8 @@ typedef struct activity_t {
 	intent_filter_node_t* intent_filters;
 	
 	activity_entry_t entry;
+	activity_pause_t pause;
+	activity_unpause_t unpause;
 	activity_exit_t exit;
 } activity_t;
 

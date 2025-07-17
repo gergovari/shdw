@@ -110,6 +110,8 @@ activity_t shd_launcher_main = {
 	.id = "shd.launcher.main",
 	.intent_filters = &shd_launcher_intent_filter_node,
 	.entry = shd_launcher_main_entry,
+	.pause = NULL,
+	.unpause = NULL,
 	.exit = shd_launcher_main_exit
 };
 activity_node_t shd_launcher_activity_node = { 
