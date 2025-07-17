@@ -178,9 +178,15 @@ void show_activity(activity_ctx_bundle_t* ctx_bundle) {
 	lv_screen_load(activity->screen);
 }
 
+void take_snapshot(activity_ctx_t* ctx) {
+	ctx->snapshot = lv_snapshot_take(ctx->screen, LV_COLOR_FORMAT_ARGB8888);
+}
+
 void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
 	activity_ctx_t* activity_ctx = ctx_bundle->activity;
 	activity_t* activity = activity_ctx->activity;
+	
+	take_snapshot(activity_ctx);
 
 	if (activity->pause != NULL) activity->pause(activity_ctx);
 }
@@ -331,6 +337,7 @@ int start_new_activity(activity_ctx_bundle_t* ctx_bundle,
 			activity_ctx->user = ctx_bundle;
 			activity_ctx->display = display;
 			activity_ctx->screen = screen;
+			activity_ctx->snapshot = NULL;
 			activity_ctx->prev = ctx_bundle->manager->current;
 			activity_ctx->activity = activity;
 			activity_ctx->cb = (void (*)(void*, int, void*))finished_activity_cb;

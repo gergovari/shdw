@@ -19,6 +19,7 @@ struct activity_ctx_ts {
 
 	lv_display_t* display;
 	lv_obj_t* screen;
+	lv_draw_buf_t* snapshot;
 	
 	activity_ctx_t* prev;
 
