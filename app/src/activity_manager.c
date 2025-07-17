@@ -337,12 +337,20 @@ int start_new_activity(activity_ctx_bundle_t* ctx_bundle,
 	return 0;
 }
 
+void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
+	activity_ctx_t* activity_ctx = ctx_bundle->activity;
+	activity_t* activity = activity_ctx->activity;
+
+	//activity->pause(activity_ctx);
+}
+
 // FIXME: memory leak lvgl draw buffer?
 // TODO: better activity lifecycles to have enough memory...
 int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
 	int ret = 0;
 	activity_manager_ctx_t* ctx; 
 	activity_ctx_bundle_t* ctx_bundle;
+	activity_ctx_t* activity_ctx;
 	bool free_bundle = false;
 
 	if (activity == NULL) {
@@ -369,7 +377,15 @@ int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_resu
 		}
 	}
 	
-	if (ret == 0) show_activity(ctx_bundle);
+	if (ret == 0) {
+		// NOTE: we temporarily repurpose the ctx_bundle
+		activity_ctx = ctx_bundle->activity;
+		ctx_bundle->activity = ctx->current;
+		pause_activity(ctx_bundle);
+		ctx_bundle->activity = activity_ctx;
+		
+		show_activity(ctx_bundle);
+	}
 	if (free_bundle) free(ctx_bundle);
 
 	return ret;
