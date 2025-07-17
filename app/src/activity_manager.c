@@ -465,12 +465,13 @@ int go_back(lv_display_t* display) {
 		if (prev != NULL) {
 			ctx_bundle->manager = ctx;
 
+			ctx_bundle->activity = current;
+			pause_activity(ctx_bundle);
+
 			ctx_bundle->activity = prev;
 			unpause_activity(ctx_bundle);
 			show_activity(ctx_bundle);
 			
-			ctx_bundle->activity = current;
-			pause_activity(ctx_bundle);
 		}
 
 		free(ctx_bundle);
