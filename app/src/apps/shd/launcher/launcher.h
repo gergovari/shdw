@@ -23,6 +23,8 @@ struct shd_launcher_entry_ctx_node_ts {
 };
 
 typedef struct shd_launcher_ctx_t {
+	int8_t random;
+
 	shd_launcher_entry_ctx_node_t* entries;
 } shd_launcher_ctx_t;
 

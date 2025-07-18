@@ -38,10 +38,11 @@ typedef bool (*intent_filter_func_t)(intent_filter_t* intent_filter, app_t* app,
 bool is_intent_filter_match(intent_filter_t* intent_filter, app_t* app, intent_t* intent);
 intent_filter_result_node_t* search_intent_filters(apps_t* apps, intent_filter_func_t func, intent_t* intent);
 
-int start_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display);
-int start_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback_t cb, lv_display_t* display);
+int launch_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display);
+int launch_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback_t cb, lv_display_t* display);
 
-int start_home_activity(apps_t* apps, lv_display_t* display);
-int start_debug_activity(apps_t* apps, lv_display_t* display);
+int launch_home_activity(apps_t* apps, lv_display_t* display);
+int launch_debug_activity(apps_t* apps, lv_display_t* display);
 
 int go_back(lv_display_t* display);
+int go_home(apps_t* apps, lv_display_t* display);

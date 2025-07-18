@@ -10,7 +10,7 @@
 void shd_launcher_entry_click_cb(lv_event_t *e) {
 	shd_launcher_entry_ctx_t* ctx = (shd_launcher_entry_ctx_t*)lv_event_get_user_data(e);
 	
-	start_activity(ctx->apps, ctx->app, ctx->activity, NULL, NULL, NULL, NULL);
+	launch_activity(ctx->apps, ctx->app, ctx->activity, NULL, NULL, NULL, NULL);
 }
 
 void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
@@ -19,12 +19,27 @@ void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
 	lv_obj_add_event_cb(btn, shd_launcher_entry_click_cb, LV_EVENT_CLICKED, ctx);
 }
 
-void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
+void shd_launcher_main_create(activity_ctx_t* activity_ctx) {
+	shd_launcher_ctx_t* ctx = malloc(sizeof(shd_launcher_ctx_t));
+
+	ctx->entries = NULL;
+	ctx->random = sys_rand8_get();
+	
+	activity_ctx->activity_user = ctx;
+}
+void shd_launcher_main_destroy(activity_ctx_t* activity_ctx) {
+	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)activity_ctx->activity_user;
+
+	free(ctx);
+}
+
+void shd_launcher_main_start(activity_ctx_t* activity_ctx) {
+	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)activity_ctx->activity_user;
+
 	lv_obj_t* screen = activity_ctx->screen;
 	lv_obj_t* list = lv_list_create(screen);
 	lv_obj_t* error_label;
 
-	shd_launcher_ctx_t* ctx = malloc(sizeof(shd_launcher_ctx_t));
 	apps_t* apps = (apps_t*)activity_ctx->apps;
 	
 	intent_t intent;
@@ -38,10 +53,7 @@ void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
 	
 	lv_obj_t* rand_label = lv_list_add_text(list, "random");
 
-	lv_label_set_text_fmt(rand_label, "%i (%p)", sys_rand8_get(), activity_ctx);
-
-	lv_obj_set_user_data(screen, ctx);
-	ctx->entries = NULL;
+	lv_label_set_text_fmt(rand_label, "%i (%p)", ctx->random, activity_ctx);
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_LAUNCHER;
@@ -82,10 +94,8 @@ void shd_launcher_main_entry(activity_ctx_t* activity_ctx) {
 		};
 	}
 }
-
-void shd_launcher_main_exit(activity_ctx_t* activity_ctx) {
-	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)lv_obj_get_user_data(activity_ctx->screen);
-	
+void shd_launcher_main_stop(activity_ctx_t* activity_ctx) {
+	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)activity_ctx->activity_user;
 	shd_launcher_entry_ctx_node_t* node = ctx->entries;
 	shd_launcher_entry_ctx_node_t* next_node;
 
@@ -94,8 +104,6 @@ void shd_launcher_main_exit(activity_ctx_t* activity_ctx) {
 		free(node);
 		node = next_node;
 	}
-
-	free(ctx);
 }
 
 intent_filter_t shd_launcher_intent_filter = {
@@ -109,10 +117,16 @@ intent_filter_node_t shd_launcher_intent_filter_node = {
 activity_t shd_launcher_main = {
 	.id = "shd.launcher.main",
 	.intent_filters = &shd_launcher_intent_filter_node,
-	.entry = shd_launcher_main_entry,
-	.pause = NULL,
-	.unpause = NULL,
-	.exit = shd_launcher_main_exit
+
+	.on_create = shd_launcher_main_create,
+	.on_destroy = shd_launcher_main_destroy,
+
+	.on_start = shd_launcher_main_start,
+	.on_restart = NULL,
+	.on_stop = shd_launcher_main_stop,
+
+	.on_resume = NULL,
+	.on_pause = NULL 
 };
 activity_node_t shd_launcher_activity_node = { 
 	.activity = &shd_launcher_main, 

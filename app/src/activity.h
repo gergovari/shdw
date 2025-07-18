@@ -11,6 +11,17 @@ typedef struct apps_t apps_t;
 typedef struct app_t app_t;
 typedef struct activity_t activity_t;
 
+typedef enum {
+	CREATED,
+	DESTROYED,
+
+	RESUMED,
+	PAUSED,
+
+	STARTED,
+	STOPPED,
+} activity_state_t;
+
 typedef struct activity_ctx_ts activity_ctx_t;
 struct activity_ctx_ts {
 	apps_t* apps;
@@ -22,28 +33,32 @@ struct activity_ctx_ts {
 	lv_draw_buf_t* snapshot;
 	
 	activity_ctx_t* prev;
+	activity_state_t state;
 
 	activity_t* activity;
 	activity_callback_t cb;
 	activity_result_callback_t result_cb;
 	void* return_user;
 
+	void* activity_user;
 	void* input;
 };
 
-typedef void (*activity_entry_t)(activity_ctx_t* ctx);
-typedef void (*activity_pause_t)(activity_ctx_t* ctx);
-typedef void (*activity_unpause_t)(activity_ctx_t* ctx);
-typedef void (*activity_exit_t)(activity_ctx_t* ctx);
+typedef void (*activity_func_t)(activity_ctx_t* ctx);
 
 typedef struct activity_t {
 	char* id;
 	intent_filter_node_t* intent_filters;
 	
-	activity_entry_t entry;
-	activity_pause_t pause;
-	activity_unpause_t unpause;
-	activity_exit_t exit;
+	activity_func_t on_create;
+	activity_func_t on_destroy;
+
+	activity_func_t on_start;
+	activity_func_t on_restart;
+	activity_func_t on_stop;
+
+	activity_func_t on_pause;
+	activity_func_t on_resume;
 } activity_t;
 
 typedef struct activity_node_ts activity_node_t;

@@ -144,14 +144,14 @@ int init_devices(const struct device** displays, size_t size, lv_display_t** lv_
 int start_activities(apps_t* apps, lv_display_t** lv_displays, size_t size) {
 	int ret = 0;
 
-	ret = start_home_activity(apps, NULL);
+	ret = launch_home_activity(apps, NULL);
 	if (ret != 0) {
 		LOG_ERR("Couldn't launch CATEGORY_HOME activity!");
 	}
 	
 	#ifdef DEBUG
 	if (DT_ZEPHYR_DISPLAYS_COUNT > 1) {
-		ret = start_debug_activity(apps, lv_displays[1]);
+		ret = launch_debug_activity(apps, lv_displays[1]);
 		if (ret != 0) {
 			LOG_ERR("Couldn't launch CATEGORY_DEBUG activity!");
 		}
@@ -187,7 +187,7 @@ int main(void)
 	
 	if (start_activities(&apps, lv_displays, DT_ZEPHYR_DISPLAYS_COUNT) != 0) {
 		LOG_ERR("Failed to start activities!");
-	} 
+	}
 	
 	lv_run(displays, DT_ZEPHYR_DISPLAYS_COUNT);
 }
