@@ -169,16 +169,84 @@ int add_activity_ctx_to_manager(activity_ctx_bundle_t* ctx_bundle) {
 	return 0;
 }
 
+void take_snapshot(activity_ctx_t* ctx) {
+	if (ctx->snapshot != NULL) lv_draw_buf_destroy(ctx->snapshot);
+	ctx->snapshot = lv_snapshot_take(ctx->screen, LV_COLOR_FORMAT_ARGB8888);
+}
+void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
+	activity_ctx_t* activity_ctx = ctx_bundle->activity;
+	activity_t* activity = activity_ctx->activity;
+
+	take_snapshot(activity_ctx);
+	
+	if (activity->on_pause != NULL) activity->on_pause(activity_ctx);
+	activity_ctx->state = PAUSED;
+}
+int preempt_activity(activity_manager_ctx_t* ctx, activity_ctx_t* current, activity_ctx_t* next, activity_ctx_bundle_t* ctx_bundle);
+int go_back_ctx(activity_manager_ctx_t* ctx) {
+	activity_ctx_t* current = ctx->current;
+	activity_ctx_t* prev = current->prev;
+
+	if (prev != NULL) return preempt_activity(ctx, current, prev, NULL);
+	return -1;
+}
+int stop_activity(activity_ctx_bundle_t* ctx_bundle) {
+	activity_ctx_t* activity_ctx = ctx_bundle->activity;
+	activity_t* activity = activity_ctx->activity;
+	lv_obj_t* screen = activity_ctx->screen;
+
+	if (screen == lv_screen_active()) {
+		return -1;
+	} else {
+		if (activity->on_stop != NULL) activity->on_stop(activity_ctx);
+
+		lv_obj_delete(activity_ctx->screen);
+		activity_ctx->screen = NULL;
+
+		activity_ctx->state = STOPPED;
+		return 0;
+	}
+}
+void show_activity(activity_ctx_bundle_t* ctx_bundle);
+void resume_or_restart_activity(activity_ctx_bundle_t* ctx_bundle);
+int preempt_activity(activity_manager_ctx_t* ctx, activity_ctx_t* current, activity_ctx_t* next, activity_ctx_bundle_t* ctx_bundle) {
+	bool free_bundle = false;
+	
+	if (current == next) {
+		return -1;
+	} else {
+		if (ctx_bundle == NULL) { 
+			ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+			free_bundle = true;
+		}
+
+		if (ctx_bundle == NULL) {
+			return -ENOSR;
+		} else {
+			ctx_bundle->manager = ctx;
+
+			ctx_bundle->activity = current;
+			pause_activity(ctx_bundle);
+
+			ctx_bundle->activity = next;
+			resume_or_restart_activity(ctx_bundle);
+			show_activity(ctx_bundle);
+			
+			ctx_bundle->activity = current;
+			stop_activity(ctx_bundle);
+			ctx_bundle->activity = next;
+
+			if (free_bundle) free(ctx_bundle);
+			return 0;
+		}
+	}
+}
 void show_activity(activity_ctx_bundle_t* ctx_bundle) {
 	activity_manager_ctx_t* manager = ctx_bundle->manager;
 	activity_ctx_t* activity = ctx_bundle->activity;
 
 	manager->current = activity;
 	lv_screen_load(activity->screen);
-}
-void take_snapshot(activity_ctx_t* ctx) {
-	if (ctx->snapshot != NULL) lv_draw_buf_destroy(ctx->snapshot);
-	ctx->snapshot = lv_snapshot_take(ctx->screen, LV_COLOR_FORMAT_ARGB8888);
 }
 
 void destroy_activity(activity_ctx_bundle_t* ctx_bundle) {
@@ -190,11 +258,21 @@ void destroy_activity(activity_ctx_bundle_t* ctx_bundle) {
 
 	activity_ctx->state = DESTROYED;
 }
+
 void finished_activity_cb(activity_ctx_bundle_t* ctx_bundle, int result, void* data) {
-	activity_ctx_t* ctx = ctx_bundle->activity;
-	activity_result_callback_t cb = ctx->result_cb;
-	void* user = ctx->return_user;
-	
+	activity_ctx_t* activity_ctx = ctx_bundle->activity;
+	activity_manager_ctx_t* manager = ctx_bundle->manager;
+
+	activity_result_callback_t cb = activity_ctx->result_cb;
+	void* user = activity_ctx->return_user;
+
+	if (manager->current == activity_ctx) { 
+		if (go_back_ctx(manager) != 0) launch_home_activity(activity_ctx->apps, activity_ctx->display);
+	} else {
+		pause_activity(ctx_bundle);
+		stop_activity(ctx_bundle);
+	}
+
 	destroy_activity(ctx_bundle);
 	if (cb != NULL) cb(result, data, user);
 }
@@ -271,17 +349,6 @@ int start_activity(activity_ctx_bundle_t* ctx_bundle) {
 		return 0;
 	}
 }
-void stop_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-
-	if (activity->on_stop != NULL) activity->on_stop(activity_ctx);
-	lv_obj_delete(activity_ctx->screen);
-	activity_ctx->screen = NULL;
-
-	activity_ctx->state = STOPPED;
-}
-
 void resume_activity(activity_ctx_bundle_t* ctx_bundle) {
 	activity_ctx_t* activity_ctx = ctx_bundle->activity;
 	activity_t* activity = activity_ctx->activity;
@@ -289,16 +356,6 @@ void resume_activity(activity_ctx_bundle_t* ctx_bundle) {
 	if (activity->on_resume != NULL) activity->on_resume(activity_ctx);
 	activity_ctx->state = RESUMED;
 }
-void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-
-	take_snapshot(activity_ctx);
-	
-	if (activity->on_pause != NULL) activity->on_pause(activity_ctx);
-	activity_ctx->state = PAUSED;
-}
-
 void resume_or_restart_activity(activity_ctx_bundle_t* ctx_bundle) {
 	activity_ctx_t* activity_ctx = ctx_bundle->activity;
 	activity_t* activity = activity_ctx->activity;
@@ -315,6 +372,7 @@ void resume_or_restart_activity(activity_ctx_bundle_t* ctx_bundle) {
 			break;
 	}
 }
+
 
 activity_manager_ctx_t* get_activity_manager(lv_display_t* display) {
 	// FIXME: driver data workaround as user_data crashes...
@@ -404,39 +462,6 @@ int launch_new_activity(activity_ctx_bundle_t* ctx_bundle,
 	return ret;
 }
 
-int preempt_activity(activity_manager_ctx_t* ctx, activity_ctx_t* current, activity_ctx_t* next, activity_ctx_bundle_t* ctx_bundle) {
-	bool free_bundle = false;
-	
-	if (current == next) {
-		return -1;
-	} else {
-		if (ctx_bundle == NULL) { 
-			ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
-			free_bundle = true;
-		}
-
-		if (ctx_bundle == NULL) {
-			return -ENOSR;
-		} else {
-			ctx_bundle->manager = ctx;
-
-			ctx_bundle->activity = current;
-			pause_activity(ctx_bundle);
-
-			ctx_bundle->activity = next;
-			resume_or_restart_activity(ctx_bundle);
-			show_activity(ctx_bundle);
-			
-			ctx_bundle->activity = current;
-			stop_activity(ctx_bundle);
-			ctx_bundle->activity = next;
-
-			if (free_bundle) free(ctx_bundle);
-			return 0;
-		}
-	}
-}
-
 int launch_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
 	int ret = -1;
 	activity_manager_ctx_t* ctx; 
@@ -512,21 +537,16 @@ int launch_debug_activity(apps_t* apps, lv_display_t* display) {
 }
 
 int go_back(lv_display_t* display) {
-	int ret = 0;
 	activity_manager_ctx_t* ctx;
-	activity_ctx_t* current;
-	activity_ctx_t* prev;
 	
 	if (display == NULL) display = lv_display_get_default();
 
 	ctx = try_activity_manager(display);
 	if (ctx == NULL) return -ENOSR;
-	current = ctx->current;
-	prev = current->prev;
 
-	if (prev != NULL) ret = preempt_activity(ctx, current, prev, NULL);
-	return ret;
+	return go_back_ctx(ctx);
 }
+
 int go_home(apps_t* apps, lv_display_t* display) {
 	return launch_home_activity(apps, display);
 }
