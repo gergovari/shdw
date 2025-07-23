@@ -401,36 +401,39 @@ int launch_new_activity(activity_ctx_bundle_t* ctx_bundle,
 		}
 	}
 
-	//return ret;
-	return -1;
+	return ret;
 }
 
 int preempt_activity(activity_manager_ctx_t* ctx, activity_ctx_t* current, activity_ctx_t* next, activity_ctx_bundle_t* ctx_bundle) {
 	bool free_bundle = false;
-
-	if (ctx_bundle == NULL) { 
-		ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
-		free_bundle = true;
-	}
-
-	if (ctx_bundle == NULL) {
-		return -ENOSR;
+	
+	if (current == next) {
+		return -1;
 	} else {
-		ctx_bundle->manager = ctx;
+		if (ctx_bundle == NULL) { 
+			ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+			free_bundle = true;
+		}
 
-		ctx_bundle->activity = current;
-		pause_activity(ctx_bundle);
+		if (ctx_bundle == NULL) {
+			return -ENOSR;
+		} else {
+			ctx_bundle->manager = ctx;
 
-		ctx_bundle->activity = next;
-		resume_or_restart_activity(ctx_bundle);
-		show_activity(ctx_bundle);
+			ctx_bundle->activity = current;
+			pause_activity(ctx_bundle);
 
-		ctx_bundle->activity = current;
-		stop_activity(ctx_bundle);
-		ctx_bundle->activity = next;
+			ctx_bundle->activity = next;
+			resume_or_restart_activity(ctx_bundle);
+			show_activity(ctx_bundle);
+			
+			ctx_bundle->activity = current;
+			stop_activity(ctx_bundle);
+			ctx_bundle->activity = next;
 
-		if (free_bundle) free(ctx_bundle);
-		return 0;
+			if (free_bundle) free(ctx_bundle);
+			return 0;
+		}
 	}
 }
 
@@ -460,7 +463,7 @@ int launch_activity(apps_t* apps, app_t* app, activity_t* activity, activity_res
 			ret = launch_new_activity(ctx_bundle, activity, apps, app, cb, input, user, display);
 		}
 	}
-	if (ret == 0) preempt_activity(ctx, ctx->current, ctx_bundle->activity, ctx_bundle);
+	if (ret == 0 && ctx->current != ctx_bundle->activity) preempt_activity(ctx, ctx->current, ctx_bundle->activity, ctx_bundle);
 
 	if (free_bundle) free(ctx_bundle);
 	return ret;
