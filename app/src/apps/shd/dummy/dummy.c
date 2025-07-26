@@ -38,9 +38,12 @@ void shd_dummy_exit_cb(lv_event_t* e) {
 	shd_act_ctx_t* activity_ctx = ctx->activity_ctx;
 	shd_act_cb_t cb = activity_ctx->cb;
 	void* user = activity_ctx->user;
+	int8_t* random = ctx->random;
 
 	printf("dummy (%p) sending: %i\n", activity_ctx, *(ctx->random));
-	cb(user, 0, (void*)ctx->random);
+
+	ctx->random = NULL;
+	cb(user, 0, (void*)random);
 }
 
 void shd_dummy_new_start(shd_act_ctx_t* activity_ctx) {
@@ -81,7 +84,7 @@ void shd_dummy_main_create(shd_act_ctx_t* activity_ctx) {
 void shd_dummy_main_destroy(shd_act_ctx_t* activity_ctx) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)activity_ctx->activity_user;
 	
-	free(ctx->random);
+	if (ctx->random != NULL) free(ctx->random);
 	free(ctx);
 
 	printf("dummy destroy (%p)\n", activity_ctx);
