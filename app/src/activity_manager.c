@@ -416,7 +416,8 @@ int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
 			if (ret == 0) {
 				ret = shd_act_ctx_state_transition(prev, RESUMED);
 				if (ret == 0) ret = shd_act_man_act_ctx_show(manager, prev);
-				if (ret != 0) shd_act_ctx_state_transition(current, RESUMED);
+				if (ret == 0) shd_act_ctx_state_transition(current, CREATED_STOPPED); 
+				else shd_act_ctx_state_transition(current, RESUMED);
 			}
 		}
 	}
