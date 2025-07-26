@@ -16,7 +16,7 @@ void shd_clock_set_text(lv_timer_t* timer) {
 	}
 }
 
-void shd_clock_main_create(activity_ctx_t* activity_ctx) {
+void shd_clock_main_create(shd_act_ctx_t* activity_ctx) {
 	shd_clock_ctx* ctx = malloc(sizeof(shd_clock_ctx));
 
 	ctx->rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
@@ -27,14 +27,14 @@ void shd_clock_main_create(activity_ctx_t* activity_ctx) {
 
 	activity_ctx->activity_user = ctx;
 }
-void shd_clock_main_destroy(activity_ctx_t* activity_ctx) {
+void shd_clock_main_destroy(shd_act_ctx_t* activity_ctx) {
 	shd_clock_ctx* ctx = (shd_clock_ctx*)activity_ctx->activity_user;
 	
 	lv_style_reset(ctx->style);
 	free(ctx);
 }
 
-void shd_clock_main_start(activity_ctx_t* activity_ctx) {
+void shd_clock_main_start(shd_act_ctx_t* activity_ctx) {
 	shd_clock_ctx* ctx = (shd_clock_ctx*)activity_ctx->activity_user;
 	lv_obj_t* clock = lv_label_create(activity_ctx->screen);
 
@@ -45,20 +45,19 @@ void shd_clock_main_start(activity_ctx_t* activity_ctx) {
 	lv_obj_center(clock);
 	
 }
-void shd_clock_main_stop(activity_ctx_t* activity_ctx) {
-	lv_obj_t* screen = activity_ctx->screen;
+void shd_clock_main_stop(shd_act_ctx_t* activity_ctx) {
 	shd_clock_ctx* ctx = (shd_clock_ctx*)activity_ctx->activity_user;
 
 	ctx->clock = NULL;
 }
 
-void shd_clock_main_resume(activity_ctx_t* activity_ctx) {
+void shd_clock_main_resume(shd_act_ctx_t* activity_ctx) {
 	shd_clock_ctx* ctx = (shd_clock_ctx*)activity_ctx->activity_user;
 
 	ctx->timer = lv_timer_create(shd_clock_set_text, 500, ctx);
 	lv_timer_ready(ctx->timer);
 }
-void shd_clock_main_pause(activity_ctx_t* activity_ctx) {
+void shd_clock_main_pause(shd_act_ctx_t* activity_ctx) {
 	shd_clock_ctx* ctx = (shd_clock_ctx*)activity_ctx->activity_user;
 	
 	lv_timer_delete(ctx->timer);
@@ -72,7 +71,7 @@ intent_filter_node_t shd_clock_intent_filter_node = {
 	.intent_filter = &shd_clock_filter, 
 	.next = NULL 
 };
-activity_t shd_clock_main = {
+shd_act_t shd_clock_main = {
 	.id = "shd.clock.main",
 	.intent_filters = &shd_clock_intent_filter_node,
 
@@ -86,11 +85,11 @@ activity_t shd_clock_main = {
 	.on_resume = shd_clock_main_resume,
 	.on_pause = shd_clock_main_pause 
 };
-activity_node_t shd_clock_activity_node = { 
+shd_act_node_t shd_clock_activity_node = { 
 	.activity = &shd_clock_main, 
 	.next = NULL 
 };
-app_t shd_clock = {
+shd_app_t shd_clock = {
 	.id = "shd.clock",
 	.title = "Clock",
 	.activities = &shd_clock_activity_node

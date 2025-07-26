@@ -141,17 +141,17 @@ int init_devices(const struct device** displays, size_t size, lv_display_t** lv_
 	return ret;
 }
 
-int start_activities(apps_t* apps, lv_display_t** lv_displays, size_t size) {
+int start_activities(shd_act_man_ctx_t* manager, lv_display_t** lv_displays, size_t size) {
 	int ret = 0;
 
-	ret = launch_home_activity(apps, NULL);
+	ret = shd_act_man_home_launch(manager, NULL);
 	if (ret != 0) {
 		LOG_ERR("Couldn't launch CATEGORY_HOME activity!");
 	}
 	
 	#ifdef DEBUG
 	if (DT_ZEPHYR_DISPLAYS_COUNT > 1) {
-		ret = launch_debug_activity(apps, lv_displays[1]);
+		ret = shd_act_man_debug_launch(manager, lv_displays[1]);
 		if (ret != 0) {
 			LOG_ERR("Couldn't launch CATEGORY_DEBUG activity!");
 		}
@@ -168,26 +168,30 @@ int main(void)
 
 	const struct device* rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 
-	app_t* app_list[] = {
+	shd_app_t* app_list[] = {
 		&shd_launcher,
 		&shd_clock,
 
 		&shd_debug,
 		&shd_dummy,
 	};
-	apps_t apps = {
+	shd_apps_t apps = {
 		.list = app_list,
-		.size = sizeof(app_list)/sizeof(app_t*)
+		.size = sizeof(app_list)/sizeof(shd_app_t*)
 	};
+
+	shd_act_man_ctx_t* manager = shd_act_man_create(&apps);
 
 	FOR_EACH(ENUMERATE_DISPLAY_DEVS, (), LV_DISPLAYS_IDX_LIST);
 	if (init_devices(displays, DT_ZEPHYR_DISPLAYS_COUNT, lv_displays, rtc) != 0) {
 		LOG_ERR("Devices init failed!");
 	}
 	
-	if (start_activities(&apps, lv_displays, DT_ZEPHYR_DISPLAYS_COUNT) != 0) {
+	if (start_activities(manager, lv_displays, DT_ZEPHYR_DISPLAYS_COUNT) != 0) {
 		LOG_ERR("Failed to start activities!");
 	}
 	
 	lv_run(displays, DT_ZEPHYR_DISPLAYS_COUNT);
+
+	shd_act_man_destroy(manager);
 }

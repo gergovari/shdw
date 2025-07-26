@@ -2,14 +2,16 @@
 
 #include "activity.h"
 
-typedef struct app_t {
+#include <stddef.h>
+
+typedef struct shd_app_t {
 	char* id;
 	char* title;
 	
-	activity_node_t* activities;
+	shd_act_node_t* activities;
 } app_t;
 
-typedef struct apps_t {
+typedef struct shd_apps_t {
 	app_t** list;
 	size_t size;
-} apps_t;
+} shd_apps_t;

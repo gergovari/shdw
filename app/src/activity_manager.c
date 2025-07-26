@@ -1,11 +1,11 @@
 #include "activity_manager.h"
 
-#include <lvgl.h>
+#include "lv_utils.h"
 
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include <errno.h>
+
+#include <string.h>
 
 void destroy_intent_filter_results(intent_filter_result_node_t* node) {
 	intent_filter_result_node_t* next;
@@ -16,11 +16,10 @@ void destroy_intent_filter_results(intent_filter_result_node_t* node) {
 		node = next;
 	}
 }
-intent_filter_result_node_t* search_intent_filters(apps_t* apps, 
-		bool (*func)(intent_filter_t*, app_t*, intent_t*), intent_t* intent) {
-	activity_node_t* activity_node;
-	activity_t* activity;
-	app_t* app;
+intent_filter_result_node_t* search_intent_filters(shd_apps_t* apps, intent_filter_func_t func, intent_t* intent) {
+	shd_act_node_t* activity_node;
+	shd_act_t* activity;
+	shd_app_t* app;
 
 	intent_filter_node_t* intent_filter_node;
 	intent_filter_t* intent_filter;
@@ -88,7 +87,7 @@ intent_filter_result_node_t* search_intent_filters(apps_t* apps,
 	return final_node;
 }
 
-bool is_activity_in_category(activity_t* activity, category_t category) {
+bool is_activity_in_category(shd_act_t* activity, category_t category) {
 	intent_filter_node_t* intent_filter_node = activity->intent_filters;
 	intent_filter_t* intent_filter;
 
@@ -104,7 +103,7 @@ bool is_activity_in_category(activity_t* activity, category_t category) {
 
 	return false;
 }
-bool is_activity_has_action(activity_t* activity, action_t action) {
+bool is_activity_has_action(shd_act_t* activity, action_t action) {
 	intent_filter_node_t* intent_filter_node = activity->intent_filters;
 	intent_filter_t* intent_filter;
 
@@ -120,22 +119,117 @@ bool is_activity_has_action(activity_t* activity, action_t action) {
 
 	return false;
 }
-bool is_intent_filter_match(intent_filter_t* intent_filter, app_t* app, intent_t* intent) {
+bool is_intent_filter_match(intent_filter_t* intent_filter, shd_app_t* app, intent_t* intent) {
 	// TODO: data check
 	if ((intent_filter->action & intent->action) > 0 && 
 		(intent_filter->category & intent->category) >= intent->category) return true;	
 	return false;
 }
 
-void delete_activity_ctx_from_manager(activity_ctx_bundle_t* ctx_bundle) {
-	activity_manager_ctx_t* manager = ctx_bundle->manager;
-	activity_ctx_t* activity = ctx_bundle->activity;
+int shd_act_man_act_ctx_display_current_add(shd_act_man_ctx_t* manager, lv_display_t* display, shd_act_ctx_t* ctx) {
+	shd_display_act_ctx_entry_node_t* node = malloc(sizeof(shd_display_act_ctx_entry_node_t));
+	
+	if (node == NULL) {
+		return -ENOSR;
+	} else {
+		node->value = malloc(sizeof(shd_display_act_ctx_entry_t));
+		if (node->value == NULL) {
+			return -ENOSR;
+		} else {
+			node->value->display = display;
+			node->value->ctx = ctx;
 
-	activity_ctx_node_t* node = manager->activities;
-	activity_ctx_node_t* last_node = NULL;
+			node->prev = manager->current_activities;
+			manager->current_activities = node;
+		}
+	}
+
+	return 0;
+}
+int shd_act_man_act_ctx_display_current_set(shd_act_man_ctx_t* manager, lv_display_t* display, shd_act_ctx_t* ctx) {
+	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
 
 	while (node != NULL) {
-		if (node->value == activity) {
+		if (node->value->display == display) {
+			node->value->ctx = ctx;
+			return 0;
+		}
+
+		node = node->prev;
+	}
+	
+	return shd_act_man_act_ctx_display_current_add(manager, display, ctx);
+}
+shd_act_ctx_t* shd_act_man_act_ctx_display_current_get(shd_act_man_ctx_t* manager, lv_display_t* display) {
+	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
+
+	while (node != NULL) {
+		if (node->value->display == display) {
+			return node->value->ctx;
+		}
+
+		node = node->prev;
+	}
+
+	return NULL;
+}
+bool shd_act_man_act_ctx_display_current_is(shd_act_man_ctx_t* manager, lv_display_t* display, shd_act_ctx_t* ctx) {
+	return shd_act_man_act_ctx_display_current_get(manager, display) == ctx;
+}
+
+void shd_act_man_act_finished_cb(shd_act_ctx_t* ctx, int result, void* data) {
+	shd_act_man_ctx_t* manager = ctx->manager;
+	lv_display_t* display = lv_display_or_default(ctx->display);
+
+	shd_act_result_cb_t cb = ctx->result_cb;
+	void* user = ctx->return_user;
+	
+	if (shd_act_man_act_ctx_display_current_is(manager, display, ctx)) if (shd_act_man_back_go(manager, display) != 0) shd_act_man_home_go(manager, display);
+
+	shd_act_ctx_state_transition(ctx, INITIALIZED_DESTROYED);
+	if (cb != NULL) cb(result, data, user);
+}
+shd_act_ctx_t* shd_act_man_act_ctx_create(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
+	shd_act_ctx_t* ctx = malloc(sizeof(shd_act_ctx_t));
+	shd_act_ctx_node_t* new = malloc(sizeof(shd_act_ctx_node_t));
+	
+	if (new == NULL || ctx == NULL) {
+		return NULL;
+	} else {
+		ctx->manager = manager;
+
+		ctx->display = display;
+		ctx->screen = NULL;
+		ctx->snapshot = NULL;
+
+		ctx->app = app;
+		ctx->activity = activity;
+		ctx->prev = shd_act_man_act_ctx_display_current_get(manager, display);
+		ctx->state = INITIALIZED_DESTROYED;
+
+		ctx->cb = (void (*)(void*, int, void*))shd_act_man_act_finished_cb;
+		ctx->user = ctx; // TODO: rethink, do we really need it as a user parameter?
+
+		ctx->result_cb = cb;
+		ctx->return_user = user;
+
+		ctx->input = input;
+		ctx->activity_user = NULL;
+
+		new->prev = manager->activities;
+		new->value = ctx;
+		manager->activities = new;
+	}
+	
+	return ctx;
+}
+void shd_act_man_act_ctx_destroy(shd_act_ctx_t* ctx) {
+	shd_act_man_ctx_t* manager = ctx->manager;
+	shd_act_ctx_node_t* node = manager->activities;
+	shd_act_ctx_node_t* last_node = NULL;
+
+	while (node != NULL) {
+		if (node->value == ctx) {
 			if (last_node == NULL) {
 				manager->activities = node->prev;
 			} else {
@@ -150,251 +244,22 @@ void delete_activity_ctx_from_manager(activity_ctx_bundle_t* ctx_bundle) {
 		node = node->prev;
 	}
 
-	free(activity);
-	free(ctx_bundle);
-}
-int add_activity_ctx_to_manager(activity_ctx_bundle_t* ctx_bundle) {
-	activity_manager_ctx_t* manager = ctx_bundle->manager;
-	activity_ctx_t* activity = ctx_bundle->activity;
-	activity_ctx_node_t* new = malloc(sizeof(activity_ctx_node_t));
-	
-	if (new == NULL) {
-		return -ENOSR;
-	} else {
-		new->prev = manager->activities;
-		new->value = activity;
-		manager->activities = new;
-	}
-	
-	return 0;
+	free(ctx);
 }
 
-void take_snapshot(activity_ctx_t* ctx) {
-	if (ctx->snapshot != NULL) lv_draw_buf_destroy(ctx->snapshot);
-	ctx->snapshot = lv_snapshot_take(ctx->screen, LV_COLOR_FORMAT_ARGB8888);
+shd_act_man_ctx_t* shd_act_man_create(shd_apps_t* apps) {
+	shd_act_man_ctx_t* manager = malloc(sizeof(shd_act_man_ctx_t)); 
+
+	manager->apps = apps;
+
+	manager->current_activities = NULL;
+	manager->activities = NULL;
+
+	return manager;
 }
-void pause_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-
-	take_snapshot(activity_ctx);
-	
-	if (activity->on_pause != NULL) activity->on_pause(activity_ctx);
-	activity_ctx->state = PAUSED;
-}
-int preempt_activity(activity_manager_ctx_t* ctx, activity_ctx_t* current, activity_ctx_t* next, activity_ctx_bundle_t* ctx_bundle);
-int go_back_ctx(activity_manager_ctx_t* ctx) {
-	activity_ctx_t* current = ctx->current;
-	activity_ctx_t* prev = current->prev;
-
-	if (prev != NULL) return preempt_activity(ctx, current, prev, NULL);
-	return -1;
-}
-int stop_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-	lv_obj_t* screen = activity_ctx->screen;
-
-	if (screen == lv_screen_active()) {
-		return -1;
-	} else {
-		if (activity->on_stop != NULL) activity->on_stop(activity_ctx);
-
-		lv_obj_delete(activity_ctx->screen);
-		activity_ctx->screen = NULL;
-
-		activity_ctx->state = STOPPED;
-		return 0;
-	}
-}
-void show_activity(activity_ctx_bundle_t* ctx_bundle);
-void resume_or_restart_activity(activity_ctx_bundle_t* ctx_bundle);
-int preempt_activity(activity_manager_ctx_t* ctx, activity_ctx_t* current, activity_ctx_t* next, activity_ctx_bundle_t* ctx_bundle) {
-	bool free_bundle = false;
-	
-	if (current == next) {
-		return -1;
-	} else {
-		if (ctx_bundle == NULL) { 
-			ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
-			free_bundle = true;
-		}
-
-		if (ctx_bundle == NULL) {
-			return -ENOSR;
-		} else {
-			ctx_bundle->manager = ctx;
-
-			ctx_bundle->activity = current;
-			pause_activity(ctx_bundle);
-
-			ctx_bundle->activity = next;
-			resume_or_restart_activity(ctx_bundle);
-			show_activity(ctx_bundle);
-			
-			ctx_bundle->activity = current;
-			stop_activity(ctx_bundle);
-			ctx_bundle->activity = next;
-
-			if (free_bundle) free(ctx_bundle);
-			return 0;
-		}
-	}
-}
-void show_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_manager_ctx_t* manager = ctx_bundle->manager;
-	activity_ctx_t* activity = ctx_bundle->activity;
-
-	manager->current = activity;
-	lv_screen_load(activity->screen);
-}
-
-void destroy_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-
-	if (activity->on_destroy != NULL) activity->on_destroy(activity_ctx);
-	delete_activity_ctx_from_manager(ctx_bundle);
-
-	activity_ctx->state = DESTROYED;
-}
-
-void finished_activity_cb(activity_ctx_bundle_t* ctx_bundle, int result, void* data) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_manager_ctx_t* manager = ctx_bundle->manager;
-
-	activity_result_callback_t cb = activity_ctx->result_cb;
-	void* user = activity_ctx->return_user;
-
-	if (manager->current == activity_ctx) { 
-		if (go_back_ctx(manager) != 0) launch_home_activity(activity_ctx->apps, activity_ctx->display);
-	} else {
-		pause_activity(ctx_bundle);
-		stop_activity(ctx_bundle);
-	}
-
-	destroy_activity(ctx_bundle);
-	if (cb != NULL) cb(result, data, user);
-}
-int create_activity(activity_ctx_bundle_t* ctx_bundle, 
-		activity_t* activity, 
-		apps_t* apps, app_t* app, 
-		activity_result_callback_t cb, void* input,  void* user,
-		lv_display_t* display) {
-	activity_ctx_t* activity_ctx;
-	
-	if (display == NULL) display = lv_display_get_default();
-
-	ctx_bundle->activity = malloc(sizeof(activity_ctx_t));
-	activity_ctx = ctx_bundle->activity; 
-	
-	if (activity_ctx == NULL) {
-		return -ENOSR;
-	} else {
-		activity_ctx->apps = apps;
-		activity_ctx->app = app;
-		activity_ctx->user = ctx_bundle;
-		activity_ctx->display = display;
-		activity_ctx->snapshot = NULL;
-		activity_ctx->prev = ctx_bundle->manager->current;
-		activity_ctx->activity = activity;
-		activity_ctx->cb = (void (*)(void*, int, void*))finished_activity_cb;
-		activity_ctx->result_cb = cb;
-		activity_ctx->return_user = user;
-		activity_ctx->input = input;
-
-		if (add_activity_ctx_to_manager(ctx_bundle) == 0) {
-			if (activity->on_create != NULL) activity->on_create(activity_ctx);
-
-			activity_ctx->state = CREATED;
-		} else {
-			ctx_bundle->activity = NULL;
-			free(activity_ctx);
-
-			return -ENOSR;
-		}
-	}
-	
-	return 0;
-}
-
-lv_obj_t* lv_screen_create_on_display(lv_display_t* display) {
-	lv_display_t* old_display = lv_display_get_default();
-	lv_obj_t* screen;
-
-	lv_display_set_default(display);
-	screen = lv_obj_create(NULL);
-	lv_display_set_default(old_display);
-	
-	return screen;
-}
-int start_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-
-	lv_display_t* display = activity_ctx->display;
-	lv_obj_t* screen = lv_screen_create_on_display(display);
-
-	activity_t* activity = activity_ctx->activity;
-		
-	if (screen == NULL) {
-		destroy_activity(ctx_bundle);
-
-		return -ENOSR;
-	} else {
-		activity_ctx->screen = screen;
-		if (activity->on_start != NULL) activity->on_start(activity_ctx);
-		show_activity(ctx_bundle);
-
-		activity_ctx->state = STARTED;
-		return 0;
-	}
-}
-void resume_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-
-	if (activity->on_resume != NULL) activity->on_resume(activity_ctx);
-	activity_ctx->state = RESUMED;
-}
-void resume_or_restart_activity(activity_ctx_bundle_t* ctx_bundle) {
-	activity_ctx_t* activity_ctx = ctx_bundle->activity;
-	activity_t* activity = activity_ctx->activity;
-
-	switch (activity_ctx->state) {
-		case PAUSED:
-			resume_activity(ctx_bundle);
-			break;
-		case STOPPED:
-			if (activity->on_restart != NULL) activity->on_restart(activity_ctx);
-			start_activity(ctx_bundle);
-			break;
-		default:
-			break;
-	}
-}
-
-
-activity_manager_ctx_t* get_activity_manager(lv_display_t* display) {
-	// FIXME: driver data workaround as user_data crashes...
-	return (activity_manager_ctx_t*)lv_display_get_driver_data(display);
-}
-activity_manager_ctx_t* init_activity_manager(lv_display_t* display) {
-	activity_manager_ctx_t* ctx = malloc(sizeof(activity_manager_ctx_t)); 
-	ctx->current = NULL;
-	ctx->activities = NULL;
-	
-	lv_display_set_driver_data(display, ctx);
-	return ctx;
-}
-activity_manager_ctx_t* try_activity_manager(lv_display_t* display) {
-	activity_manager_ctx_t* ctx = get_activity_manager(display);
-
-	if (ctx == NULL) ctx = init_activity_manager(display);
-	return ctx;
-}
-void destroy_activity_manager_ctxs(activity_manager_ctx_t* ctx) {
-	activity_ctx_node_t* node = ctx->activities;
-	activity_ctx_node_t* prev;
+void shd_act_man_act_ctx_cleanup(shd_act_man_ctx_t* manager) {
+	shd_act_ctx_node_t* node = manager->activities;
+	shd_act_ctx_node_t* prev;
 
 	while (node != NULL) {
 		prev = node->prev;
@@ -405,14 +270,27 @@ void destroy_activity_manager_ctxs(activity_manager_ctx_t* ctx) {
 		node = prev;
 	}
 }
-void destroy_activity_manager(activity_manager_ctx_t* ctx) {
-	destroy_activity_manager_ctxs(ctx);
+void shd_act_man_act_ctx_current_cleanup(shd_act_man_ctx_t* manager) {
+	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
+	shd_display_act_ctx_entry_node_t* prev;
 
-	free(ctx);
+	while (node != NULL) {
+		prev = node->prev;
+
+		free(node->value);
+		free(node);
+
+		node = prev;
+	}
+}
+void shd_act_man_destroy(shd_act_man_ctx_t* manager) {
+	shd_act_man_act_ctx_cleanup(manager);
+	shd_act_man_act_ctx_current_cleanup(manager);
+	free(manager);
 }
 
-activity_ctx_t* find_activity_ctx_in_manager(activity_manager_ctx_t* ctx, activity_t* activity) {
-	activity_ctx_node_t* node = ctx->activities;
+shd_act_ctx_t* shd_act_man_act_ctx_find(shd_act_man_ctx_t* manager, shd_act_t* activity) {
+	shd_act_ctx_node_t* node = manager->activities;
 
 	while (node != NULL) {
 		if (node->value->activity == activity) {
@@ -424,129 +302,125 @@ activity_ctx_t* find_activity_ctx_in_manager(activity_manager_ctx_t* ctx, activi
 
 	return NULL;
 }
+shd_act_ctx_t* shd_act_man_act_ctx_relaunch(shd_act_man_ctx_t* manager, shd_act_t* activity, void* input, void* user) {
+	shd_act_ctx_t* ctx = shd_act_man_act_ctx_find(manager, activity);
 
-int launch_existing_activity(activity_ctx_bundle_t* ctx_bundle, activity_t* activity, void* input, void* user) {
+	if (ctx != NULL) {
+		ctx->input = input;
+		ctx->return_user = user;
+		
+		if (shd_act_ctx_state_transition(ctx, RESUMED) != 0) ctx = NULL;
+	}
+
+	return ctx;
+}
+shd_act_ctx_t* shd_act_man_act_ctx_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
+	shd_act_ctx_t* ctx = shd_act_man_act_ctx_create(manager, app, activity, display, cb, input, user);
+
+	if (ctx != NULL) if (shd_act_ctx_state_transition(ctx, RESUMED) != 0) ctx = NULL;
+	return ctx;
+}
+
+int shd_act_man_act_ctx_show(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx) {
 	int ret = 0;
-	activity_ctx_t* activity_ctx;
-	
-	activity_ctx = find_activity_ctx_in_manager(ctx_bundle->manager, activity);
-	if (activity_ctx == NULL) {
-		ret = -ESRCH;
-	} else {
-		ctx_bundle->activity = activity_ctx;
-		
-		activity_ctx->input = input;
-		activity_ctx->return_user = user;
-		
-		resume_or_restart_activity(ctx_bundle);
+
+	if (ctx->state >= STARTED_PAUSED) {
+		ret = shd_act_man_act_ctx_display_current_set(manager, lv_display_or_default(ctx->display), ctx);
+
+		if (ret == 0) lv_screen_load(ctx->screen);
 	}
 
 	return ret;
 }
 
-int launch_new_activity(activity_ctx_bundle_t* ctx_bundle, 
-		activity_t* activity, 
-		apps_t* apps, app_t* app, 
-		activity_result_callback_t cb, void* input,  void* user,
-		lv_display_t* display) {
-	int ret = create_activity(ctx_bundle, activity, apps, app, cb, input, user, display);
-
-	if (ret == 0) {
-		ret = start_activity(ctx_bundle);
-
-		if (ret == 0) {
-			resume_activity(ctx_bundle);
-		}
-	}
-
-	return ret;
-}
-
-int launch_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
+int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
 	int ret = -1;
-	activity_manager_ctx_t* ctx; 
-	activity_ctx_bundle_t* ctx_bundle;
-	bool free_bundle = false;
 
-	if (activity == NULL) {
-		return -ENOSYS;
+	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, display);
+	shd_act_ctx_t* ctx = NULL; 
+
+	if (current != NULL) shd_act_ctx_state_transition(current, STARTED_PAUSED);
+
+	if (is_activity_has_action(activity, ACTION_MAIN)) ctx = shd_act_man_act_ctx_relaunch(manager, activity, input, user);
+	if (ctx == NULL) ctx = shd_act_man_act_ctx_launch(manager, app, activity, lv_display_or_default(display), cb, input, user);
+
+	if (ctx == NULL) {
+		shd_act_ctx_state_transition(current, RESUMED);
+		ret = -ENOSYS;
 	} else {
-		ctx_bundle = malloc(sizeof(activity_ctx_bundle_t));
+		ret = shd_act_man_act_ctx_show(manager, ctx);
 
-		if (display == NULL) display = lv_display_get_default();
-		
-		ctx = try_activity_manager(display);
-		if (ctx == NULL) return -ENOSR;
-		ctx_bundle->manager = ctx;
-		
-		if (is_activity_has_action(activity, ACTION_MAIN)) {
-			ret = launch_existing_activity(ctx_bundle, activity, input, user);
-			free_bundle = (ret != -ESRCH);
+		if (current != NULL) {
+			if (ret == 0) {
+				shd_act_ctx_state_transition(current, CREATED_STOPPED);
+			} else {
+				shd_act_ctx_state_transition(current, RESUMED);
+			}
 		}
+	} 
 
-		if (!free_bundle) {
-			ret = launch_new_activity(ctx_bundle, activity, apps, app, cb, input, user, display);
-		}
-	}
-	if (ret == 0 && ctx->current != ctx_bundle->activity) preempt_activity(ctx, ctx->current, ctx_bundle->activity, ctx_bundle);
-
-	if (free_bundle) free(ctx_bundle);
 	return ret;
 }
-int launch_activity_from_intent_filter_result(apps_t* apps,
-		intent_filter_result_t* intent_filter_result,
-		activity_result_callback_t cb, void* input, void* user, lv_display_t* display) {
-	return launch_activity(apps, intent_filter_result->app, intent_filter_result->activity, cb, input, user, display);
+
+int shd_act_man_act_launch_from_intent_filter_result(shd_act_man_ctx_t* manager, lv_display_t* display, intent_filter_result_t* intent_filter_result,
+		shd_act_result_cb_t cb, void* input, void* user) {
+	return shd_act_man_act_launch(manager, intent_filter_result->app, intent_filter_result->activity, lv_display_or_default(display), cb, input, user);
 }
-int launch_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback_t cb, lv_display_t* display) {
+
+int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t* display, intent_t* intent, shd_act_result_cb_t cb) {
 	int ret = 0;
-	intent_filter_result_node_t* intent_filter_result_node = search_intent_filters(apps, (intent_filter_func_t)is_intent_filter_match, intent);
-	
+
+	intent_filter_result_node_t* intent_filter_result_node 
+		= search_intent_filters(manager->apps, (intent_filter_func_t)is_intent_filter_match, intent);
+
 	if (intent_filter_result_node == NULL) return -ENOSYS;
 
 	// TODO: allow user to pick if multiple activities match
-	ret = launch_activity_from_intent_filter_result(
-			apps, &intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user, display);
+	ret = shd_act_man_act_launch_from_intent_filter_result(manager, lv_display_or_default(display), &intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user);
 
 	destroy_intent_filter_results(intent_filter_result_node); // TODO: if we decide to iterate here then do the freeing there
-
 	return ret;
 }
 
-int launch_home_activity(apps_t* apps, lv_display_t* display) {
+int shd_act_man_home_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	intent_t intent;
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_HOME;
 	intent.activity = NULL;
 
-	if (display == NULL) display = lv_display_get_default();
-	
-	return launch_activity_from_intent(apps, &intent, NULL, display);
+	return shd_act_man_act_launch_from_intent(manager, lv_display_or_default(display), &intent, NULL);
 }
-int launch_debug_activity(apps_t* apps, lv_display_t* display) {
+int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
+	int ret = -1;
+	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, display);
+	shd_act_ctx_t* prev;
+	
+	if (current != NULL) {
+		prev = current->prev;
+
+		ret = shd_act_ctx_state_transition(current, STARTED_PAUSED);
+		if (ret == 0) {
+			ret = shd_act_ctx_state_transition(prev, RESUMED);
+
+			if (ret == 0) ret = shd_act_man_act_ctx_show(manager, prev);
+			if (ret != 0) shd_act_ctx_state_transition(current, RESUMED);
+		}
+
+	}
+	
+	return ret;
+}
+int shd_act_man_home_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
+	return shd_act_man_home_launch(manager, lv_display_or_default(display));
+}
+int shd_act_man_debug_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	intent_t intent;
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_DEBUG;
 	intent.activity = NULL;
-
-	if (display == NULL) display = lv_display_get_default();
 	
-	return launch_activity_from_intent(apps, &intent, NULL, display);
+	return shd_act_man_act_launch_from_intent(manager, lv_display_or_default(display), &intent, NULL);
 }
 
-int go_back(lv_display_t* display) {
-	activity_manager_ctx_t* ctx;
-	
-	if (display == NULL) display = lv_display_get_default();
-
-	ctx = try_activity_manager(display);
-	if (ctx == NULL) return -ENOSR;
-
-	return go_back_ctx(ctx);
-}
-
-int go_home(apps_t* apps, lv_display_t* display) {
-	return launch_home_activity(apps, display);
-}

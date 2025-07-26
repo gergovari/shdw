@@ -10,7 +10,7 @@
 void shd_launcher_entry_click_cb(lv_event_t *e) {
 	shd_launcher_entry_ctx_t* ctx = (shd_launcher_entry_ctx_t*)lv_event_get_user_data(e);
 	
-	launch_activity(ctx->apps, ctx->app, ctx->activity, NULL, NULL, NULL, NULL);
+	shd_act_man_act_launch(ctx->manager, ctx->app, ctx->activity, ctx->display, NULL, NULL, NULL);
 }
 
 void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
@@ -19,7 +19,7 @@ void shd_launcher_entry_create(shd_launcher_entry_ctx_t* ctx) {
 	lv_obj_add_event_cb(btn, shd_launcher_entry_click_cb, LV_EVENT_CLICKED, ctx);
 }
 
-void shd_launcher_main_create(activity_ctx_t* activity_ctx) {
+void shd_launcher_main_create(shd_act_ctx_t* activity_ctx) {
 	shd_launcher_ctx_t* ctx = malloc(sizeof(shd_launcher_ctx_t));
 
 	ctx->entries = NULL;
@@ -27,20 +27,21 @@ void shd_launcher_main_create(activity_ctx_t* activity_ctx) {
 	
 	activity_ctx->activity_user = ctx;
 }
-void shd_launcher_main_destroy(activity_ctx_t* activity_ctx) {
+void shd_launcher_main_destroy(shd_act_ctx_t* activity_ctx) {
 	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)activity_ctx->activity_user;
 
 	free(ctx);
 }
 
-void shd_launcher_main_start(activity_ctx_t* activity_ctx) {
+void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)activity_ctx->activity_user;
 
 	lv_obj_t* screen = activity_ctx->screen;
 	lv_obj_t* list = lv_list_create(screen);
 	lv_obj_t* error_label;
-
-	apps_t* apps = (apps_t*)activity_ctx->apps;
+	
+	shd_act_man_ctx_t* manager = activity_ctx->manager;
+	shd_apps_t* apps = manager->apps;
 	
 	intent_t intent;
 	intent_filter_result_node_t* intent_filter_result_node;
@@ -48,8 +49,8 @@ void shd_launcher_main_start(activity_ctx_t* activity_ctx) {
 	intent_filter_result_t* intent_filter_result;
 
 	shd_launcher_entry_ctx_t* entry_ctx;
-	app_t* app;
-	activity_t* activity;
+	shd_app_t* app;
+	shd_act_t* activity;
 	
 	lv_obj_t* rand_label = lv_list_add_text(list, "random");
 
@@ -78,9 +79,12 @@ void shd_launcher_main_start(activity_ctx_t* activity_ctx) {
 
 			entry_ctx = malloc(sizeof(shd_launcher_entry_ctx_t));
 			entry_ctx->list = list;
-			entry_ctx->apps = apps;
+			
+			entry_ctx->manager = manager;
 			entry_ctx->app = app;
 			entry_ctx->activity = activity;
+
+			entry_ctx->display = activity_ctx->display;
 
 			shd_launcher_entry_create(entry_ctx);
 			
@@ -94,7 +98,7 @@ void shd_launcher_main_start(activity_ctx_t* activity_ctx) {
 		};
 	}
 }
-void shd_launcher_main_stop(activity_ctx_t* activity_ctx) {
+void shd_launcher_main_stop(shd_act_ctx_t* activity_ctx) {
 	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)activity_ctx->activity_user;
 	shd_launcher_entry_ctx_node_t* node = ctx->entries;
 	shd_launcher_entry_ctx_node_t* next_node;
@@ -114,7 +118,7 @@ intent_filter_node_t shd_launcher_intent_filter_node = {
 	.intent_filter = &shd_launcher_intent_filter, 
 	.next = NULL
 };
-activity_t shd_launcher_main = {
+shd_act_t shd_launcher_main = {
 	.id = "shd.launcher.main",
 	.intent_filters = &shd_launcher_intent_filter_node,
 
@@ -128,11 +132,11 @@ activity_t shd_launcher_main = {
 	.on_resume = NULL,
 	.on_pause = NULL 
 };
-activity_node_t shd_launcher_activity_node = { 
+shd_act_node_t shd_launcher_activity_node = { 
 	.activity = &shd_launcher_main, 
 	.next = NULL 
 };
-app_t shd_launcher = {
+shd_app_t shd_launcher = {
 	.id = "shd.launcher",
 	.title = "Launcher",
 	.activities = &shd_launcher_activity_node

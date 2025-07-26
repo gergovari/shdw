@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../../../app.h"
+#include "../../../activity_ctx.h"
 
-extern app_t shd_clock;
+extern shd_app_t shd_clock;
 
 typedef struct shd_clock_ctx {
 	const struct device* rtc;
@@ -12,5 +13,5 @@ typedef struct shd_clock_ctx {
 	lv_timer_t* timer;
 } shd_clock_ctx;
 
-void shd_clock_main_entry(activity_ctx_t* ctx);
-void shd_clock_main_exit(activity_ctx_t* ctx);
+void shd_clock_main_entry(shd_act_ctx_t* ctx);
+void shd_clock_main_exit(shd_act_ctx_t* ctx);

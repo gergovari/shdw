@@ -2,29 +2,14 @@
 
 #include <lvgl.h>
 
-#include "activity.h"
-#include "intent.h"
 #include "app.h"
+#include "activity_ctx.h"
 
-typedef struct activity_ctx_node_ts activity_ctx_node_t;
-struct activity_ctx_node_ts {
-	activity_ctx_t* value;
-	activity_ctx_node_t* prev;
-};
-
-typedef struct activity_manager_ctx_t {
-	activity_ctx_node_t* activities;
-	activity_ctx_t* current;
-} activity_manager_ctx_t;
-
-typedef struct activity_ctx_bundle_t {
-	activity_manager_ctx_t* manager;
-	activity_ctx_t* activity;
-} activity_ctx_bundle_t;
+#include "intent.h"
 
 typedef struct intent_filter_result_t {
-	app_t* app;
-	activity_t* activity;
+	shd_app_t* app;
+	shd_act_t* activity;
 } intent_filter_result_t;
 
 typedef struct intent_filter_result_node_ts intent_filter_result_node_t;
@@ -33,16 +18,43 @@ struct intent_filter_result_node_ts {
 	intent_filter_result_node_t* next;
 };
 
-typedef bool (*intent_filter_func_t)(intent_filter_t* intent_filter, app_t* app, intent_t* intent);
+typedef bool (*intent_filter_func_t)(intent_filter_t* intent_filter, shd_app_t* app, intent_t* intent);
 
-bool is_intent_filter_match(intent_filter_t* intent_filter, app_t* app, intent_t* intent);
-intent_filter_result_node_t* search_intent_filters(apps_t* apps, intent_filter_func_t func, intent_t* intent);
+bool is_intent_filter_match(intent_filter_t* intent_filter, shd_app_t* app, intent_t* intent);
+intent_filter_result_node_t* search_intent_filters(shd_apps_t* apps, intent_filter_func_t func, intent_t* intent);
 
-int launch_activity(apps_t* apps, app_t* app, activity_t* activity, activity_result_callback_t cb, void* input, void* user, lv_display_t* display);
-int launch_activity_from_intent(apps_t* apps, intent_t* intent, activity_result_callback_t cb, lv_display_t* display);
+typedef struct shd_act_ctx_node_ts shd_act_ctx_node_t;
+struct shd_act_ctx_node_ts {
+	shd_act_ctx_t* value;
+	shd_act_ctx_node_t* prev;
+};
 
-int launch_home_activity(apps_t* apps, lv_display_t* display);
-int launch_debug_activity(apps_t* apps, lv_display_t* display);
+typedef struct {
+	lv_display_t* display;
+	shd_act_ctx_t* ctx;
+} shd_display_act_ctx_entry_t;
 
-int go_back(lv_display_t* display);
-int go_home(apps_t* apps, lv_display_t* display);
+typedef struct shd_display_act_ctx_entry_node_ts shd_display_act_ctx_entry_node_t;
+struct shd_display_act_ctx_entry_node_ts {
+	shd_display_act_ctx_entry_t* value;
+	shd_display_act_ctx_entry_node_t* prev;
+};
+
+typedef struct shd_act_man_ctx_t {
+	shd_apps_t* apps;
+
+	shd_display_act_ctx_entry_node_t* current_activities;
+	shd_act_ctx_node_t* activities;
+} shd_act_man_ctx_t;
+
+shd_act_man_ctx_t* shd_act_man_create(shd_apps_t* apps);
+void shd_act_man_destroy(shd_act_man_ctx_t* manager);
+
+int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user);
+int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t* display, intent_t* intent, shd_act_result_cb_t cb);
+
+int shd_act_man_home_launch(shd_act_man_ctx_t* manager, lv_display_t* display);
+int shd_act_man_debug_launch(shd_act_man_ctx_t* manager, lv_display_t* display);
+
+int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display);
+int shd_act_man_home_go(shd_act_man_ctx_t* manager, lv_display_t* display);

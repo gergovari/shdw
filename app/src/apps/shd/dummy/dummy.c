@@ -20,7 +20,7 @@ void shd_dummy_return_cb(int result, void* data, void* user) {
 
 void shd_dummy_new_cb(lv_event_t* e) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)lv_event_get_user_data(e);
-	activity_ctx_t* activity_ctx = ctx->activity_ctx;
+	shd_act_ctx_t* activity_ctx = ctx->activity_ctx;
 	intent_t intent;
 	int ret;
 
@@ -28,22 +28,22 @@ void shd_dummy_new_cb(lv_event_t* e) {
 	intent.user = ctx;
 	
 	printf("launching new dummy (%p)!\n", activity_ctx);
-	ret = launch_activity_from_intent(activity_ctx->apps, &intent, (activity_result_callback_t)shd_dummy_return_cb, activity_ctx->display);
+	ret = shd_act_man_act_launch_from_intent(activity_ctx->manager, activity_ctx->display, &intent, (shd_act_result_cb_t)shd_dummy_return_cb);
 	if (ret != 0) {
 		printf("dummy (%p) couldn't start new activity! (ret: %i)\n", activity_ctx, ret);
 	}
 }
 void shd_dummy_exit_cb(lv_event_t* e) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)lv_event_get_user_data(e);
-	activity_ctx_t* activity_ctx = ctx->activity_ctx;
-	activity_callback_t cb = activity_ctx->cb;
+	shd_act_ctx_t* activity_ctx = ctx->activity_ctx;
+	shd_act_cb_t cb = activity_ctx->cb;
 	void* user = activity_ctx->user;
 
 	printf("dummy (%p) sending: %i\n", activity_ctx, *(ctx->random));
 	cb(user, 0, (void*)ctx->random);
 }
 
-void shd_dummy_new_start(activity_ctx_t* activity_ctx) {
+void shd_dummy_new_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_t* screen = activity_ctx->screen;
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)activity_ctx->activity_user;
 
@@ -67,7 +67,7 @@ void shd_dummy_new_start(activity_ctx_t* activity_ctx) {
 	printf("new dummy start (%p)\n", activity_ctx);
 }
 
-void shd_dummy_main_create(activity_ctx_t* activity_ctx) {
+void shd_dummy_main_create(shd_act_ctx_t* activity_ctx) {
 	shd_dummy_ctx_t* ctx = malloc(sizeof(shd_dummy_ctx_t));
 
 	ctx->random = malloc(sizeof(int8_t));
@@ -78,7 +78,7 @@ void shd_dummy_main_create(activity_ctx_t* activity_ctx) {
 
 	printf("dummy create (%p)\n", activity_ctx);
 }
-void shd_dummy_main_destroy(activity_ctx_t* activity_ctx) {
+void shd_dummy_main_destroy(shd_act_ctx_t* activity_ctx) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)activity_ctx->activity_user;
 	
 	free(ctx->random);
@@ -87,7 +87,7 @@ void shd_dummy_main_destroy(activity_ctx_t* activity_ctx) {
 	printf("dummy destroy (%p)\n", activity_ctx);
 }
 
-void shd_dummy_main_start(activity_ctx_t* activity_ctx) {
+void shd_dummy_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_t* screen = activity_ctx->screen;
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)activity_ctx->activity_user;
 
@@ -110,17 +110,17 @@ void shd_dummy_main_start(activity_ctx_t* activity_ctx) {
 
 	printf("dummy start (%p)\n", activity_ctx);
 }
-void shd_dummy_restart(activity_ctx_t* activity_ctx) {
+void shd_dummy_restart(shd_act_ctx_t* activity_ctx) {
 	printf("dummy restart (%p)\n", activity_ctx);
 }
-void shd_dummy_stop(activity_ctx_t* activity_ctx) {
+void shd_dummy_stop(shd_act_ctx_t* activity_ctx) {
 	printf("dummy stop (%p)\n", activity_ctx);
 }
 
-void shd_dummy_resume(activity_ctx_t* activity_ctx) {
+void shd_dummy_resume(shd_act_ctx_t* activity_ctx) {
 	printf("dummy resume (%p)\n", activity_ctx);
 }
-void shd_dummy_pause(activity_ctx_t* activity_ctx) {
+void shd_dummy_pause(shd_act_ctx_t* activity_ctx) {
 	printf("dummy pause (%p)\n", activity_ctx);
 }
 
@@ -134,7 +134,7 @@ intent_filter_node_t shd_dummy_main_intent_filter_node = {
 	.next = NULL
 };
 
-activity_t shd_dummy_main = {
+shd_act_t shd_dummy_main = {
 	.id = "shd.dummy.main",
 	.intent_filters = &shd_dummy_main_intent_filter_node,
 
@@ -148,7 +148,7 @@ activity_t shd_dummy_main = {
 	.on_resume = shd_dummy_resume,
 	.on_pause = shd_dummy_pause 
 };
-activity_t shd_dummy_new = {
+shd_act_t shd_dummy_new = {
 	.id = "shd.dummy.new",
 
 	.on_create = shd_dummy_main_create,
@@ -162,16 +162,16 @@ activity_t shd_dummy_new = {
 	.on_pause = shd_dummy_pause 
 };
 
-activity_node_t shd_dummy_new_activity_node = { 
+shd_act_node_t shd_dummy_new_activity_node = { 
 	.activity = &shd_dummy_new, 
 	.next = NULL 
 };
-activity_node_t shd_dummy_main_activity_node = { 
+shd_act_node_t shd_dummy_main_activity_node = { 
 	.activity = &shd_dummy_main, 
 	.next = &shd_dummy_new_activity_node
 };
 
-app_t shd_dummy = {
+shd_app_t shd_dummy = {
 	.id = "shd.dummy",
 	.title = "Dummy",
 	.activities = &shd_dummy_main_activity_node
