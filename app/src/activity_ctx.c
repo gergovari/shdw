@@ -3,6 +3,7 @@
 #include "lv_utils.h"
 
 #include <errno.h>
+#include <stdio.h>
 
 int shd_act_ctx_take_snapshot(shd_act_ctx_t* ctx) {
 	if (ctx->snapshot != NULL) lv_draw_buf_destroy(ctx->snapshot);
@@ -168,7 +169,7 @@ int shd_act_ctx_state_transition(shd_act_ctx_t* ctx, shd_act_state_t target) {
 					if (ret == 0) ret = shd_act_ctx_stop(ctx);
 					break;
 				case STARTED_PAUSED:
-					ret = shd_act_ctx_stop(ctx);
+					ret = shd_act_ctx_pause(ctx);
 					break;
 				case RESUMED: break;
 				default:

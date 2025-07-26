@@ -16,7 +16,7 @@ typedef struct {
 
 void shd_debug_back_cb(lv_event_t* e) {
 	shd_act_ctx_t* ctx = (shd_act_ctx_t*)lv_event_get_user_data(e);
-
+	
 	shd_act_man_back_go(ctx->manager, NULL);
 }
 void shd_debug_home_cb(lv_event_t* e) {
@@ -46,7 +46,6 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		state = activity_ctx->state;
 
 		activity_ctx_label = lv_list_add_text(ctx->list, "placeholder");
-		printf("%s (%p) | %i -> %p\n", title, activity_ctx, state, node->prev);
 		lv_label_set_text_fmt(activity_ctx_label, "%s (%p) | %i", title, activity_ctx, state);
 
 		node = node->prev;

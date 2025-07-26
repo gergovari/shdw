@@ -3,6 +3,7 @@
 #include "lv_utils.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <errno.h>
 
 #include <string.h>
@@ -149,6 +150,7 @@ int shd_act_man_act_ctx_display_current_add(shd_act_man_ctx_t* manager, lv_displ
 int shd_act_man_act_ctx_display_current_set(shd_act_man_ctx_t* manager, lv_display_t* display, shd_act_ctx_t* ctx) {
 	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
 
+	display = lv_display_or_default(display);
 	while (node != NULL) {
 		if (node->value->display == display) {
 			node->value->ctx = ctx;
@@ -382,38 +384,6 @@ int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t*
 	return ret;
 }
 
-int shd_act_man_home_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
-	intent_t intent;
-	
-	intent.action = ACTION_MAIN;
-	intent.category = CATEGORY_HOME;
-	intent.activity = NULL;
-
-	return shd_act_man_act_launch_from_intent(manager, lv_display_or_default(display), &intent, NULL);
-}
-int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
-	int ret = -1;
-	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, display);
-	shd_act_ctx_t* prev;
-	
-	if (current != NULL) {
-		prev = current->prev;
-
-		ret = shd_act_ctx_state_transition(current, STARTED_PAUSED);
-		if (ret == 0) {
-			ret = shd_act_ctx_state_transition(prev, RESUMED);
-
-			if (ret == 0) ret = shd_act_man_act_ctx_show(manager, prev);
-			if (ret != 0) shd_act_ctx_state_transition(current, RESUMED);
-		}
-
-	}
-	
-	return ret;
-}
-int shd_act_man_home_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
-	return shd_act_man_home_launch(manager, lv_display_or_default(display));
-}
 int shd_act_man_debug_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	intent_t intent;
 	
@@ -423,4 +393,36 @@ int shd_act_man_debug_launch(shd_act_man_ctx_t* manager, lv_display_t* display) 
 	
 	return shd_act_man_act_launch_from_intent(manager, lv_display_or_default(display), &intent, NULL);
 }
+int shd_act_man_home_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
+	intent_t intent;
+	
+	intent.action = ACTION_MAIN;
+	intent.category = CATEGORY_HOME;
+	intent.activity = NULL;
 
+	return shd_act_man_act_launch_from_intent(manager, lv_display_or_default(display), &intent, NULL);
+}
+
+int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
+	int ret = -1;
+	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, lv_display_or_default(display));
+	shd_act_ctx_t* prev;
+	
+	if (current != NULL) {
+		prev = current->prev;
+		
+		if (prev != NULL) {
+			ret = shd_act_ctx_state_transition(current, STARTED_PAUSED);
+			if (ret == 0) {
+				ret = shd_act_ctx_state_transition(prev, RESUMED);
+				if (ret == 0) ret = shd_act_man_act_ctx_show(manager, prev);
+				if (ret != 0) shd_act_ctx_state_transition(current, RESUMED);
+			}
+		}
+	}
+	
+	return ret;
+}
+int shd_act_man_home_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
+	return shd_act_man_home_launch(manager, lv_display_or_default(display));
+}
