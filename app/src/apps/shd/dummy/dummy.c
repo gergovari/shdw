@@ -6,6 +6,7 @@
 #include <zephyr/random/random.h>
 
 #include "../../../activity_manager.h"
+#include "../../../intent_filter.h"
 
 void shd_dummy_return_cb(int result, void* data, void* user) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)user;
@@ -21,7 +22,7 @@ void shd_dummy_return_cb(int result, void* data, void* user) {
 void shd_dummy_new_cb(lv_event_t* e) {
 	shd_dummy_ctx_t* ctx = (shd_dummy_ctx_t*)lv_event_get_user_data(e);
 	shd_act_ctx_t* activity_ctx = ctx->activity_ctx;
-	intent_t intent;
+	shd_intent_t intent;
 	int ret;
 
 	intent.activity = "shd.dummy.new";
@@ -127,12 +128,12 @@ void shd_dummy_pause(shd_act_ctx_t* activity_ctx) {
 	printf("dummy pause (%p)\n", activity_ctx);
 }
 
-intent_filter_t shd_dummy_main_filter = {
+shd_intent_filter_t shd_dummy_main_filter = {
 	.action = ACTION_MAIN,
 	.category = CATEGORY_LAUNCHER
 };
 
-intent_filter_node_t shd_dummy_main_intent_filter_node = { 
+shd_intent_filter_node_t shd_dummy_main_intent_filter_node = { 
 	.intent_filter = &shd_dummy_main_filter, 
 	.next = NULL
 };

@@ -8,124 +8,7 @@
 
 #include <string.h>
 
-void destroy_intent_filter_results(intent_filter_result_node_t* node) {
-	intent_filter_result_node_t* next;
-
-	while (node != NULL) {
-		next = node->next;
-		free(node);
-		node = next;
-	}
-}
-intent_filter_result_node_t* search_intent_filters(shd_apps_t* apps, intent_filter_func_t func, intent_t* intent) {
-	shd_act_node_t* activity_node;
-	shd_act_t* activity;
-	shd_app_t* app;
-
-	intent_filter_node_t* intent_filter_node;
-	intent_filter_t* intent_filter;
-
-	intent_filter_result_node_t* final_node = NULL;
-	intent_filter_result_node_t* intent_filter_result_node = NULL;
-	intent_filter_result_t intent_filter_result;
-
-	for (size_t i = 0; i < apps->size; i++) {
-		app = apps->list[i];
-		activity_node = app->activities;
-		
-		if (intent->activity != NULL) {
-			while (activity_node != NULL) {
-				activity = activity_node->activity;
-				
-				if (strcmp(intent->activity, activity->id) == 0) {
-					intent_filter_result_node = malloc(sizeof(intent_filter_result_node_t));
-
-					if (intent_filter_result_node != NULL) {
-						intent_filter_result_node->next = NULL;
-
-						intent_filter_result.app = app;
-						intent_filter_result.activity = activity;
-						intent_filter_result_node->intent_filter_result = intent_filter_result;
-					}
-			
-					return intent_filter_result_node;
-				}
-
-				activity_node = activity_node->next;
-			}
-			continue;
-		}
-		
-		while (activity_node != NULL) {
-			activity = activity_node->activity;
-			intent_filter_node = activity->intent_filters;
-
-			while (intent_filter_node != NULL) {
-				intent_filter = intent_filter_node->intent_filter;
-
-				if (func(intent_filter, app, intent)) {
-					if (intent_filter_result_node == NULL) {
-						intent_filter_result_node = malloc(sizeof(intent_filter_result_node_t));
-					} else {
-						intent_filter_result_node->next = malloc(sizeof(intent_filter_result_node_t));
-						intent_filter_result_node = intent_filter_result_node->next;
-					}
-
-					intent_filter_result_node->next = NULL;
-					intent_filter_result.app = app;
-					intent_filter_result.activity = activity;
-					intent_filter_result_node->intent_filter_result = intent_filter_result;
-
-					if (final_node == NULL) final_node = intent_filter_result_node;
-				};
-
-				intent_filter_node = intent_filter_node->next;
-			};
-
-			activity_node = activity_node->next;
-		};
-	}
-	return final_node;
-}
-
-bool is_activity_in_category(shd_act_t* activity, category_t category) {
-	intent_filter_node_t* intent_filter_node = activity->intent_filters;
-	intent_filter_t* intent_filter;
-
-	while (intent_filter_node != NULL) {
-		intent_filter = intent_filter_node->intent_filter;
-		
-		if ((intent_filter->category & category) >= category) {
-			return true;
-		}
-
-		intent_filter_node = intent_filter_node->next;
-	}
-
-	return false;
-}
-bool is_activity_has_action(shd_act_t* activity, action_t action) {
-	intent_filter_node_t* intent_filter_node = activity->intent_filters;
-	intent_filter_t* intent_filter;
-
-	while (intent_filter_node != NULL) {
-		intent_filter = intent_filter_node->intent_filter;
-		
-		if ((intent_filter->action & action) > 0) {
-			return true;
-		}
-
-		intent_filter_node = intent_filter_node->next;
-	}
-
-	return false;
-}
-bool is_intent_filter_match(intent_filter_t* intent_filter, shd_app_t* app, intent_t* intent) {
-	// TODO: data check
-	if ((intent_filter->action & intent->action) > 0 && 
-		(intent_filter->category & intent->category) >= intent->category) return true;	
-	return false;
-}
+#include "intent_filter.h"
 
 int shd_act_man_act_ctx_display_current_add(shd_act_man_ctx_t* manager, lv_display_t* display, shd_act_ctx_t* ctx) {
 	shd_display_act_ctx_entry_node_t* node = malloc(sizeof(shd_display_act_ctx_entry_node_t));
@@ -343,7 +226,7 @@ int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t
 
 	if (current != NULL) shd_act_ctx_state_transition(current, STARTED_PAUSED);
 
-	if (is_activity_has_action(activity, ACTION_MAIN)) ctx = shd_act_man_act_ctx_relaunch(manager, activity, input, user);
+	if (shd_act_has_action_is(activity, ACTION_MAIN)) ctx = shd_act_man_act_ctx_relaunch(manager, activity, input, user);
 	if (ctx == NULL) ctx = shd_act_man_act_ctx_launch(manager, app, activity, lv_display_or_default(display), cb, input, user);
 
 	if (ctx == NULL) {
@@ -364,28 +247,27 @@ int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t
 	return ret;
 }
 
-int shd_act_man_act_launch_from_intent_filter_result(shd_act_man_ctx_t* manager, lv_display_t* display, intent_filter_result_t* intent_filter_result,
+int shd_act_man_act_launch_from_intent_filter_result(shd_act_man_ctx_t* manager, lv_display_t* display, shd_intent_filter_result_t* intent_filter_result,
 		shd_act_result_cb_t cb, void* input, void* user) {
 	return shd_act_man_act_launch(manager, intent_filter_result->app, intent_filter_result->activity, lv_display_or_default(display), cb, input, user);
 }
 
-int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t* display, intent_t* intent, shd_act_result_cb_t cb) {
+int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t* display, shd_intent_t* intent, shd_act_result_cb_t cb) {
 	int ret = 0;
 
-	intent_filter_result_node_t* intent_filter_result_node 
-		= search_intent_filters(manager->apps, (intent_filter_func_t)is_intent_filter_match, intent);
+	shd_intent_filter_result_node_t* intent_filter_result_node = shd_apps_intent_filter_search(manager->apps, (shd_intent_filter_func_t)shd_intent_filter_match_is, intent);
 
 	if (intent_filter_result_node == NULL) return -ENOSYS;
 
 	// TODO: allow user to pick if multiple activities match
 	ret = shd_act_man_act_launch_from_intent_filter_result(manager, lv_display_or_default(display), &intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user);
 
-	destroy_intent_filter_results(intent_filter_result_node); // TODO: if we decide to iterate here then do the freeing there
+	shd_intent_filter_results_destroy(intent_filter_result_node); // TODO: if we decide to iterate here then do the freeing there
 	return ret;
 }
 
 int shd_act_man_debug_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
-	intent_t intent;
+	shd_intent_t intent;
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_DEBUG;
@@ -394,7 +276,7 @@ int shd_act_man_debug_launch(shd_act_man_ctx_t* manager, lv_display_t* display) 
 	return shd_act_man_act_launch_from_intent(manager, lv_display_or_default(display), &intent, NULL);
 }
 int shd_act_man_home_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
-	intent_t intent;
+	shd_intent_t intent;
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_HOME;

@@ -5,6 +5,8 @@
 
 #include <zephyr/drivers/rtc.h>
 
+#include "../../../intent_filter.h"
+
 void shd_clock_set_text(lv_timer_t* timer) {
 	struct rtc_time tm;
 	shd_clock_ctx* ctx = (shd_clock_ctx*)lv_timer_get_user_data(timer);
@@ -63,11 +65,11 @@ void shd_clock_main_pause(shd_act_ctx_t* activity_ctx) {
 	lv_timer_delete(ctx->timer);
 }
 
-intent_filter_t shd_clock_filter = {
+shd_intent_filter_t shd_clock_filter = {
 	.action = ACTION_MAIN,
 	.category = CATEGORY_LAUNCHER
 };
-intent_filter_node_t shd_clock_intent_filter_node = { 
+shd_intent_filter_node_t shd_clock_intent_filter_node = { 
 	.intent_filter = &shd_clock_filter, 
 	.next = NULL 
 };

@@ -10,32 +10,18 @@
 #define CATEGORY_HOME BIT64(2)
 #define CATEGORY_DEBUG BIT64(3)
 
-typedef struct intent_filter_ts intent_filter_t;
-typedef struct intent_filter_node_ts intent_filter_node_t;
 
-typedef int64_t action_t;
-typedef int64_t category_t;
-
-struct intent_filter_ts {
-	action_t action;
-	category_t category;
-
-	char* type;
-};
-
-struct intent_filter_node_ts {
-	intent_filter_t* intent_filter;
-	intent_filter_node_t* next;
-};
+typedef int64_t shd_action_t;
+typedef int64_t shd_category_t;
 
 typedef struct {
 	char* activity;
 
-	action_t action;
-	category_t category;
+	shd_action_t action;
+	shd_category_t category;
 
 	void* input;
 	char* type;
 
 	void* user;
-} intent_t;
+} shd_intent_t;

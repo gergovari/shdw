@@ -7,22 +7,6 @@
 
 #include "intent.h"
 
-typedef struct intent_filter_result_t {
-	shd_app_t* app;
-	shd_act_t* activity;
-} intent_filter_result_t;
-
-typedef struct intent_filter_result_node_ts intent_filter_result_node_t;
-struct intent_filter_result_node_ts {
-	intent_filter_result_t intent_filter_result;
-	intent_filter_result_node_t* next;
-};
-
-typedef bool (*intent_filter_func_t)(intent_filter_t* intent_filter, shd_app_t* app, intent_t* intent);
-
-bool is_intent_filter_match(intent_filter_t* intent_filter, shd_app_t* app, intent_t* intent);
-intent_filter_result_node_t* search_intent_filters(shd_apps_t* apps, intent_filter_func_t func, intent_t* intent);
-
 typedef struct shd_act_ctx_node_ts shd_act_ctx_node_t;
 struct shd_act_ctx_node_ts {
 	shd_act_ctx_t* value;
@@ -51,7 +35,7 @@ shd_act_man_ctx_t* shd_act_man_create(shd_apps_t* apps);
 void shd_act_man_destroy(shd_act_man_ctx_t* manager);
 
 int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user);
-int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t* display, intent_t* intent, shd_act_result_cb_t cb);
+int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t* display, shd_intent_t* intent, shd_act_result_cb_t cb);
 
 int shd_act_man_home_launch(shd_act_man_ctx_t* manager, lv_display_t* display);
 int shd_act_man_debug_launch(shd_act_man_ctx_t* manager, lv_display_t* display);

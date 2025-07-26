@@ -7,6 +7,8 @@
 
 #include <lvgl.h>
 
+#include "../../../intent_filter.h"
+
 void shd_launcher_entry_click_cb(lv_event_t *e) {
 	shd_launcher_entry_ctx_t* ctx = (shd_launcher_entry_ctx_t*)lv_event_get_user_data(e);
 	
@@ -43,10 +45,10 @@ void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 	shd_act_man_ctx_t* manager = activity_ctx->manager;
 	shd_apps_t* apps = manager->apps;
 	
-	intent_t intent;
-	intent_filter_result_node_t* intent_filter_result_node;
-	intent_filter_result_node_t* next_intent_filter_result_node;
-	intent_filter_result_t* intent_filter_result;
+	shd_intent_t intent;
+	shd_intent_filter_result_node_t* intent_filter_result_node;
+	shd_intent_filter_result_node_t* next_intent_filter_result_node;
+	shd_intent_filter_result_t* intent_filter_result;
 
 	shd_launcher_entry_ctx_t* entry_ctx;
 	shd_app_t* app;
@@ -60,8 +62,8 @@ void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 	intent.category = CATEGORY_LAUNCHER;
 	intent.activity = NULL;
 
-	intent_filter_result_node = search_intent_filters(apps, 
-			(intent_filter_func_t)is_intent_filter_match, 
+	intent_filter_result_node = shd_apps_intent_filter_search(apps, 
+			(shd_intent_filter_func_t)shd_intent_filter_match_is, 
 			&intent);
 
 	if (intent_filter_result_node == NULL) {
@@ -110,11 +112,11 @@ void shd_launcher_main_stop(shd_act_ctx_t* activity_ctx) {
 	}
 }
 
-intent_filter_t shd_launcher_intent_filter = {
+shd_intent_filter_t shd_launcher_intent_filter = {
 	.action = ACTION_MAIN,
 	.category = CATEGORY_HOME
 };
-intent_filter_node_t shd_launcher_intent_filter_node = {
+shd_intent_filter_node_t shd_launcher_intent_filter_node = {
 	.intent_filter = &shd_launcher_intent_filter, 
 	.next = NULL
 };

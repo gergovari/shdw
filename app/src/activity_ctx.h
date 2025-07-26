@@ -2,13 +2,12 @@
 
 #include <lvgl.h>
 
+#include "app.h"
 #include "activity.h"
 
 typedef void (*shd_act_cb_t)(void* user, int result, void* data);
 typedef void (*shd_act_result_cb_t)(int result, void* data, void* user);
 
-typedef struct shd_app_t shd_app_t;
-typedef struct shd_act_t shd_act_t;
 typedef struct shd_act_man_ctx_t shd_act_man_ctx_t;
 
 typedef enum {

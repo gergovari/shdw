@@ -5,7 +5,7 @@
 #include "../../../app.h"
 #include "../../../activity_ctx.h"
 
-extern app_t shd_dummy;
+extern shd_app_t shd_dummy;
 
 typedef struct shd_dummy_ctx_t {
 	shd_act_ctx_t* activity_ctx;

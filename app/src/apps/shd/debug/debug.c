@@ -7,6 +7,7 @@
 #include <zephyr/drivers/rtc.h>
 
 #include "../../../activity_manager.h"
+#include "../../../intent_filter.h"
 
 typedef struct {
 	lv_timer_t* timer;
@@ -89,11 +90,11 @@ void shd_debug_main_pause(shd_act_ctx_t* activity_ctx) {
 	lv_timer_delete(ctx->timer);
 }
 
-intent_filter_t shd_debug_filter = {
+shd_intent_filter_t shd_debug_filter = {
 	.action = ACTION_MAIN,
 	.category = CATEGORY_DEBUG
 };
-intent_filter_node_t shd_debug_intent_filter_node = { 
+shd_intent_filter_node_t shd_debug_intent_filter_node = { 
 	.intent_filter = &shd_debug_filter, 
 	.next = NULL 
 };
