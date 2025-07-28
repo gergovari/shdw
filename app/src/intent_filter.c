@@ -23,6 +23,7 @@ shd_intent_filter_result_node_t* shd_apps_intent_filter_search(shd_apps_t* apps,
 	shd_intent_filter_t* intent_filter;
 
 	bool ret = false;
+	bool add = false;
 	shd_intent_filter_result_node_t* final_node = NULL;
 	shd_intent_filter_result_node_t* result_node = NULL;
 	shd_intent_filter_result_t* result;
@@ -35,11 +36,20 @@ shd_intent_filter_result_node_t* shd_apps_intent_filter_search(shd_apps_t* apps,
 			activity = activity_node->activity;
 			node = activity->intent_filters;
 
-			while (node != NULL) {
-				intent_filter = node->intent_filter;
+			while (node != NULL || intent->activity != NULL) {
 				if (intent->activity != NULL) ret = strcmp(intent->activity, activity->id) == 0;
+				if (intent->activity != NULL) printf("%s vs %s => %i\n", intent->activity, activity->id, ret);
+				
+				if (node == NULL) {
+					add = ret;
+					if (!add) break;
+				} else {
+					intent_filter = node->intent_filter;
+					add = func(intent_filter, app, intent) || ret;
+					node = node->next;
+				}
 
-				if (func(intent_filter, app, intent) || ret) {
+				if (add) {
 					if (result_node == NULL) {
 						result_node = malloc(sizeof(shd_intent_filter_result_node_t));
 						final_node = result_node;
@@ -66,8 +76,6 @@ shd_intent_filter_result_node_t* shd_apps_intent_filter_search(shd_apps_t* apps,
 						}
 					}
 				}
-
-				node = node->next;
 			};
 
 			activity_node = activity_node->next;
