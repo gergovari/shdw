@@ -29,8 +29,12 @@ void shd_debug_home_cb(lv_event_t* e) {
 void shd_debug_refresh_activities(lv_timer_t* timer) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_timer_get_user_data(timer);
 	shd_act_man_ctx_t* manager = ctx->activity_ctx->manager;
+
 	lv_obj_t* list = ctx->list;
-	lv_obj_t* activity_ctx_label;
+	lv_obj_t* cont;
+	lv_obj_t* label;
+	lv_obj_t* image;
+	lv_draw_buf_t* snapshot;
 
 	shd_act_ctx_node_t* node = manager->activities;
 	shd_act_ctx_t* activity_ctx;
@@ -45,9 +49,21 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		app = activity_ctx->app;
 		title = app->title;
 		state = activity_ctx->state;
+		snapshot = activity_ctx->snapshot;
 
-		activity_ctx_label = lv_list_add_text(ctx->list, "placeholder");
-		lv_label_set_text_fmt(activity_ctx_label, "%s (%p) | %i", title, activity_ctx, state);
+		cont = lv_obj_create(list);
+		lv_obj_set_width(cont, lv_pct(80));
+		lv_obj_set_height(cont, LV_SIZE_CONTENT);
+		lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
+		lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
+
+		label = lv_label_create(cont);
+		lv_label_set_text_fmt(label, "%s (%p) | %i", title, activity_ctx, state);
+
+		if (snapshot != NULL) {
+			image = lv_image_create(cont);
+			lv_image_set_src(image, snapshot);
+		}
 
 		node = node->prev;
 	}
@@ -57,6 +73,8 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_t* screen = activity_ctx->screen;
 	
 	lv_obj_t* btn_cont = lv_obj_create(screen);
+	lv_obj_t* list = lv_obj_create(screen);
+
 	lv_obj_t* home_btn = lv_btn_create(btn_cont);
 	lv_obj_t* home_label = lv_label_create(home_btn);
 	lv_obj_t* back_btn = lv_btn_create(btn_cont);
@@ -66,10 +84,18 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 
 	activity_ctx->activity_user = ctx;
 	ctx->activity_ctx = activity_ctx;
-	ctx->list = lv_list_create(screen);
+	ctx->list = list;
 
-	lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN_WRAP);
+	lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_align(screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
+
 	lv_obj_set_flex_flow(btn_cont, LV_FLEX_FLOW_ROW_WRAP);
+	lv_obj_set_width(btn_cont, lv_pct(80));
+
+	lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
+	lv_obj_set_width(list, lv_pct(80));
+	lv_obj_set_height(list, 1000);
 
 	lv_label_set_text(home_label, "HOME");
 	lv_obj_add_event_cb(home_btn, shd_debug_home_cb, LV_EVENT_CLICKED, activity_ctx);
@@ -81,7 +107,7 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 void shd_debug_main_resume(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
 
-	ctx->timer = lv_timer_create(shd_debug_refresh_activities, 500, ctx);
+	ctx->timer = lv_timer_create(shd_debug_refresh_activities, 5000, ctx);
 	lv_timer_ready(ctx->timer);
 }
 void shd_debug_main_pause(shd_act_ctx_t* activity_ctx) {

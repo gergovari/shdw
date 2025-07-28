@@ -27,8 +27,8 @@
 	sdl_dc2: sdl-dc2 {
 		compatible = "zephyr,sdl-dc";
 		title = "Debug";
-		width = <300>;
-		height = <600>;
+		width = <600>;
+		height = <800>;
 		status = "okay";
 	};
 

@@ -44,7 +44,9 @@ int shd_act_ctx_resume(shd_act_ctx_t* ctx) {
 int shd_act_ctx_pause(shd_act_ctx_t* ctx) {
 	shd_act_t* activity = ctx->activity;
 
-	shd_act_ctx_take_snapshot(ctx); // TODO: handle if we can't take snapshot?
+	shd_act_ctx_take_snapshot(ctx);
+	// TODO: handle if we can't take snapshot?
+	// FIXME: start pruning snapshots or smt to avoid running out of memory
 	
 	if (activity->on_pause != NULL) activity->on_pause(ctx);
 	ctx->state = STARTED_PAUSED;
