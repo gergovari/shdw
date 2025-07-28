@@ -21,7 +21,7 @@ typedef struct shd_launcher_entry_ctx_t {
 typedef struct shd_launcher_entry_ctx_node_ts shd_launcher_entry_ctx_node_t;
 struct shd_launcher_entry_ctx_node_ts {
 	shd_launcher_entry_ctx_t* value;
-	shd_launcher_entry_ctx_node_t* next;
+	shd_launcher_entry_ctx_node_t* prev;
 };
 
 typedef struct shd_launcher_ctx_t {

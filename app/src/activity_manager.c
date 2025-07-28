@@ -260,7 +260,7 @@ int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t*
 	if (intent_filter_result_node == NULL) return -ENOSYS;
 
 	// TODO: allow user to pick if multiple activities match
-	ret = shd_act_man_act_launch_from_intent_filter_result(manager, lv_display_or_default(display), &intent_filter_result_node->intent_filter_result, cb, intent->input, intent->user);
+	ret = shd_act_man_act_launch_from_intent_filter_result(manager, lv_display_or_default(display), intent_filter_result_node->value, cb, intent->input, intent->user);
 
 	shd_intent_filter_results_destroy(intent_filter_result_node); // TODO: if we decide to iterate here then do the freeing there
 	return ret;

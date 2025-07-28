@@ -27,7 +27,7 @@ typedef struct shd_intent_filter_result_t {
 
 typedef struct shd_intent_filter_result_node_ts shd_intent_filter_result_node_t;
 struct shd_intent_filter_result_node_ts {
-	shd_intent_filter_result_t intent_filter_result;
+	shd_intent_filter_result_t* value;
 	shd_intent_filter_result_node_t* next;
 };
 

@@ -51,6 +51,7 @@ void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 	shd_intent_filter_result_t* intent_filter_result;
 
 	shd_launcher_entry_ctx_t* entry_ctx;
+	shd_launcher_entry_ctx_node_t* entry_node;
 	shd_app_t* app;
 	shd_act_t* activity;
 	
@@ -72,10 +73,12 @@ void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 		lv_label_set_text(error_label, "No launchable apps found!");
 	} else {
 		while (intent_filter_result_node != NULL) {
-			intent_filter_result = &(intent_filter_result_node->intent_filter_result);
+			intent_filter_result = intent_filter_result_node->value;
 			app = intent_filter_result->app;
 			activity = intent_filter_result->activity;
+
 			next_intent_filter_result_node = intent_filter_result_node->next;
+			free(intent_filter_result);
 			free(intent_filter_result_node);
 			intent_filter_result_node = next_intent_filter_result_node;
 
@@ -93,8 +96,9 @@ void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 			if (ctx->entries == NULL) {
 				ctx->entries = malloc(sizeof(shd_launcher_entry_ctx_node_t));
 			} else {
-				ctx->entries->next = malloc(sizeof(shd_launcher_entry_ctx_node_t));
-				ctx->entries = ctx->entries->next;
+				entry_node = malloc(sizeof(shd_launcher_entry_ctx_node_t));
+				entry_node->prev = ctx->entries;
+				ctx->entries = entry_node;
 			}
 			ctx->entries->value = entry_ctx;
 		};
@@ -103,13 +107,18 @@ void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 void shd_launcher_main_stop(shd_act_ctx_t* activity_ctx) {
 	shd_launcher_ctx_t* ctx = (shd_launcher_ctx_t*)activity_ctx->activity_user;
 	shd_launcher_entry_ctx_node_t* node = ctx->entries;
-	shd_launcher_entry_ctx_node_t* next_node;
+	shd_launcher_entry_ctx_node_t* prev;
 
 	while (node != NULL) {
-		next_node = node->next;
+		prev = node->prev;
+
+		free(node->value);
 		free(node);
-		node = next_node;
+
+		node = prev;
 	}
+
+	ctx->entries = NULL;
 }
 
 shd_intent_filter_t shd_launcher_intent_filter = {
