@@ -26,6 +26,18 @@ void shd_debug_home_cb(lv_event_t* e) {
 	// TODO: handle success and error by coloring the button or smt
 	shd_act_man_home_go(ctx->manager, NULL);
 }
+
+char* shd_debug_state_to_string(shd_act_state_t state) {
+	char* map[] = {
+		"INITIALIZED/DESTROYED",
+		"CREATED/STOPPED",
+		"STARTED/PAUSED",
+		"RESUMED",
+	};
+
+	return map[state];
+}
+
 void shd_debug_refresh_activities(lv_timer_t* timer) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_timer_get_user_data(timer);
 	shd_act_man_ctx_t* manager = ctx->activity_ctx->manager;
@@ -33,8 +45,12 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 	lv_obj_t* list = ctx->list;
 	lv_obj_t* cont;
 	lv_obj_t* label;
+	lv_obj_t* matrix;
 	lv_obj_t* image;
 	lv_draw_buf_t* snapshot;
+	static const char* matrix_map[] = {"Launch", "Kill", "\n", 
+			"RESUMED", "STARTED\nPAUSED", "CREATED\nSTOPPED", "INITIALIZED\nDESTROYED",
+			NULL};
 
 	shd_act_ctx_node_t* node = manager->activities;
 	shd_act_ctx_t* activity_ctx;
@@ -52,13 +68,17 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		snapshot = activity_ctx->snapshot;
 
 		cont = lv_obj_create(list);
-		lv_obj_set_width(cont, lv_pct(80));
+		lv_obj_set_width(cont, lv_pct(95));
 		lv_obj_set_height(cont, LV_SIZE_CONTENT);
 		lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
 		lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
 
 		label = lv_label_create(cont);
-		lv_label_set_text_fmt(label, "%s (%p) | %i", title, activity_ctx, state);
+		lv_label_set_text_fmt(label, "%s (%p) | %s", title, activity_ctx, shd_debug_state_to_string(state));
+		
+		matrix = lv_buttonmatrix_create(cont);
+		lv_obj_set_width(matrix, lv_pct(100));
+		lv_buttonmatrix_set_map(matrix, matrix_map);
 
 		if (snapshot != NULL) {
 			image = lv_image_create(cont);
@@ -90,11 +110,11 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_set_flex_align(screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
 
 	lv_obj_set_flex_flow(btn_cont, LV_FLEX_FLOW_ROW_WRAP);
-	lv_obj_set_width(btn_cont, lv_pct(80));
+	lv_obj_set_width(btn_cont, lv_pct(95));
 
 	lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
-	lv_obj_set_width(list, lv_pct(80));
+	lv_obj_set_width(list, lv_pct(95));
 	lv_obj_set_height(list, 1000);
 
 	lv_label_set_text(home_label, "HOME");
