@@ -49,11 +49,12 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 	lv_obj_t* image;
 	lv_draw_buf_t* snapshot;
 	static const char* matrix_map[] = {"Launch", "Kill", "\n", 
-			"RESUMED", "STARTED\nPAUSED", "CREATED\nSTOPPED", "INITIALIZED\nDESTROYED",
+			"INITIALIZED\nDESTROYED", "CREATED\nSTOPPED", "STARTED\nPAUSED", "RESUMED",
 			NULL};
 
 	shd_act_ctx_node_t* node = manager->activities;
 	shd_act_ctx_t* activity_ctx;
+	lv_display_t* display;
 	shd_app_t* app;
 	char* title;
 	shd_act_state_t state;
@@ -62,6 +63,7 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 	
 	while (node != NULL) {
 		activity_ctx = node->value;
+		display = activity_ctx->display;
 		app = activity_ctx->app;
 		title = app->title;
 		state = activity_ctx->state;
@@ -71,14 +73,16 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		lv_obj_set_width(cont, lv_pct(95));
 		lv_obj_set_height(cont, LV_SIZE_CONTENT);
 		lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
-		lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
+		lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
 		label = lv_label_create(cont);
-		lv_label_set_text_fmt(label, "%s (%p) | %s", title, activity_ctx, shd_debug_state_to_string(state));
+		lv_label_set_text_fmt(label, "%s (%p)\nstate: %s\ndisplay: %p", title, activity_ctx, shd_debug_state_to_string(state), display);
 		
 		matrix = lv_buttonmatrix_create(cont);
 		lv_obj_set_width(matrix, lv_pct(100));
 		lv_buttonmatrix_set_map(matrix, matrix_map);
+		lv_buttonmatrix_set_button_ctrl(matrix, 2 + state, LV_BUTTONMATRIX_CTRL_DISABLED);
+		if (shd_act_man_act_ctx_display_current_get(manager, display) == activity_ctx) lv_buttonmatrix_set_button_ctrl(matrix, 0, LV_BUTTONMATRIX_CTRL_DISABLED);
 
 		if (snapshot != NULL) {
 			image = lv_image_create(cont);

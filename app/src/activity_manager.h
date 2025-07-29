@@ -31,6 +31,8 @@ typedef struct shd_act_man_ctx_t {
 	shd_act_ctx_node_t* activities;
 } shd_act_man_ctx_t;
 
+shd_act_ctx_t* shd_act_man_act_ctx_display_current_get(shd_act_man_ctx_t* manager, lv_display_t* display);
+
 shd_act_man_ctx_t* shd_act_man_create(shd_apps_t* apps);
 void shd_act_man_destroy(shd_act_man_ctx_t* manager);
 

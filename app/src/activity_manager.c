@@ -13,6 +13,7 @@
 int shd_act_man_act_ctx_display_current_add(shd_act_man_ctx_t* manager, lv_display_t* display, shd_act_ctx_t* ctx) {
 	shd_display_act_ctx_entry_node_t* node = malloc(sizeof(shd_display_act_ctx_entry_node_t));
 	
+	display = lv_display_or_default(display);
 	if (node == NULL) {
 		return -ENOSR;
 	} else {
@@ -47,7 +48,8 @@ int shd_act_man_act_ctx_display_current_set(shd_act_man_ctx_t* manager, lv_displ
 }
 shd_act_ctx_t* shd_act_man_act_ctx_display_current_get(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
-
+	
+	display = lv_display_or_default(display);
 	while (node != NULL) {
 		if (node->value->display == display) {
 			return node->value->ctx;
