@@ -216,6 +216,11 @@ int shd_act_man_act_ctx_launch(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx, l
 	}
 	return ret;
 }
+void shd_act_man_act_ctx_kill(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx) {
+	shd_act_ctx_state_transition(ctx, INITIALIZED_DESTROYED);
+	shd_act_man_back_go(manager, ctx->display);
+	shd_act_man_act_ctx_destroy(ctx);
+}
 
 int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
 	int ret = -1;
@@ -286,8 +291,9 @@ int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
 			if (ret == 0) {
 				ret = shd_act_ctx_state_transition(prev, RESUMED);
 				if (ret == 0) ret = shd_act_man_act_ctx_show(manager, prev);
-				if (ret == 0) shd_act_ctx_state_transition(current, CREATED_STOPPED); 
-				else shd_act_ctx_state_transition(current, RESUMED);
+
+				if (ret != 0) ret = shd_act_man_home_go(manager, display);
+				shd_act_ctx_state_transition(current, CREATED_STOPPED); 
 			}
 		}
 	}

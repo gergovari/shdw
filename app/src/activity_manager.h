@@ -36,6 +36,9 @@ shd_act_ctx_t* shd_act_man_act_ctx_display_current_get(shd_act_man_ctx_t* manage
 shd_act_man_ctx_t* shd_act_man_create(shd_apps_t* apps);
 void shd_act_man_destroy(shd_act_man_ctx_t* manager);
 
+int shd_act_man_act_ctx_launch(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx, lv_display_t* display);
+void shd_act_man_act_ctx_kill(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx);
+
 int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user);
 int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t* display, shd_intent_t* intent, shd_act_result_cb_t cb);
 
