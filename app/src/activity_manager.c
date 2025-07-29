@@ -189,24 +189,6 @@ shd_act_ctx_t* shd_act_man_act_ctx_find(shd_act_man_ctx_t* manager, shd_act_t* a
 
 	return NULL;
 }
-shd_act_ctx_t* shd_act_man_act_ctx_relaunch(shd_act_man_ctx_t* manager, shd_act_t* activity, void* input, void* user) {
-	shd_act_ctx_t* ctx = shd_act_man_act_ctx_find(manager, activity);
-
-	if (ctx != NULL) {
-		ctx->input = input;
-		ctx->return_user = user;
-		
-		if (shd_act_ctx_state_transition(ctx, RESUMED) != 0) ctx = NULL;
-	}
-
-	return ctx;
-}
-shd_act_ctx_t* shd_act_man_act_ctx_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
-	shd_act_ctx_t* ctx = shd_act_man_act_ctx_create(manager, app, activity, display, cb, input, user);
-
-	if (ctx != NULL) if (shd_act_ctx_state_transition(ctx, RESUMED) != 0) ctx = NULL;
-	return ctx;
-}
 
 int shd_act_man_act_ctx_show(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx) {
 	int ret = 0;
@@ -220,32 +202,36 @@ int shd_act_man_act_ctx_show(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx) {
 	return ret;
 }
 
-int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
+int shd_act_man_act_ctx_launch(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx, lv_display_t* display) {
 	int ret = -1;
-
 	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, display);
-	shd_act_ctx_t* ctx = NULL; 
 
 	if (current != NULL) shd_act_ctx_state_transition(current, STARTED_PAUSED);
 
-	if (shd_act_has_action_is(activity, ACTION_MAIN)) ctx = shd_act_man_act_ctx_relaunch(manager, activity, input, user);
-	if (ctx == NULL) ctx = shd_act_man_act_ctx_launch(manager, app, activity, lv_display_or_default(display), cb, input, user);
+	ret = shd_act_ctx_state_transition(ctx, RESUMED);
+	if (ret == 0) ret = shd_act_man_act_ctx_show(manager, ctx);
 
-	if (ctx == NULL) {
-		shd_act_ctx_state_transition(current, RESUMED);
-		ret = -ENOSYS;
-	} else {
-		ret = shd_act_man_act_ctx_show(manager, ctx);
+	if (current != NULL) {
+		if (ret == 0) shd_act_ctx_state_transition(current, CREATED_STOPPED); else shd_act_ctx_state_transition(current, RESUMED);
+	}
+	return ret;
+}
 
-		if (current != NULL) {
-			if (ret == 0) {
-				shd_act_ctx_state_transition(current, CREATED_STOPPED);
-			} else {
-				shd_act_ctx_state_transition(current, RESUMED);
-			}
+int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
+	int ret = -1;
+	shd_act_ctx_t* ctx = NULL; 
+
+	if (shd_act_has_action_is(activity, ACTION_MAIN)) {
+		ctx = shd_act_man_act_ctx_find(manager, activity);
+
+		if (ctx != NULL) {
+			ctx->input = input;
+			ctx->return_user = user;
 		}
-	} 
+	}
+	if (ctx == NULL) ctx = shd_act_man_act_ctx_create(manager, app, activity, display, cb, input, user);
 
+	if (ctx == NULL) ret = -ENOSYS; else ret = shd_act_man_act_ctx_launch(manager, ctx, display);
 	return ret;
 }
 

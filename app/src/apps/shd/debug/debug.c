@@ -82,7 +82,12 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		lv_obj_set_width(matrix, lv_pct(100));
 		lv_buttonmatrix_set_map(matrix, matrix_map);
 		lv_buttonmatrix_set_button_ctrl(matrix, 2 + state, LV_BUTTONMATRIX_CTRL_DISABLED);
-		if (shd_act_man_act_ctx_display_current_get(manager, display) == activity_ctx) lv_buttonmatrix_set_button_ctrl(matrix, 0, LV_BUTTONMATRIX_CTRL_DISABLED);
+		if (shd_act_man_act_ctx_display_current_get(manager, display) == activity_ctx) {
+			lv_buttonmatrix_set_button_ctrl(matrix, 0, LV_BUTTONMATRIX_CTRL_DISABLED);
+			lv_buttonmatrix_set_button_ctrl(matrix, 2, LV_BUTTONMATRIX_CTRL_DISABLED);
+			lv_buttonmatrix_set_button_ctrl(matrix, 3, LV_BUTTONMATRIX_CTRL_DISABLED);
+			lv_buttonmatrix_set_button_ctrl(matrix, 4, LV_BUTTONMATRIX_CTRL_DISABLED);
+		}
 
 		if (snapshot != NULL) {
 			image = lv_image_create(cont);
