@@ -1,4 +1,5 @@
 #include "activity_ctx.h"
+#include "activity_manager.h"
 
 #include "lv_utils.h"
 
@@ -23,54 +24,66 @@ int shd_act_ctx_screen_create(shd_act_ctx_t* ctx) {
 	return 0;
 }
 int shd_act_ctx_screen_destroy(shd_act_ctx_t* ctx) {
-	if (ctx->screen == lv_screen_active()) {
-		return -EBUSY;
-	} else {
+	Printf("shd_act_ctx_screen_destroy: %p\n", shd_act_man_act_ctx_display_current_find(ctx));
+	if (shd_act_man_act_ctx_display_current_find(ctx) == NULL) {
+		printf("%s (%p) screen delete\n", ctx->activity->id, ctx);
 		lv_obj_delete(ctx->screen);
 		ctx->screen = NULL;
-	}
+	} else return -EBUSY;
 
 	return 0;
 }
 
 int shd_act_ctx_resume(shd_act_ctx_t* ctx) {
 	shd_act_t* activity = ctx->activity;
-
-	if (activity->on_resume != NULL) activity->on_resume(ctx);
-	ctx->state = RESUMED;
+	
+	if (ctx->state != RESUMED) {
+		if (activity->on_resume != NULL) activity->on_resume(ctx);
+		ctx->state = RESUMED;
+	}
 
 	return 0;
 }
 int shd_act_ctx_pause(shd_act_ctx_t* ctx) {
 	shd_act_t* activity = ctx->activity;
 
-	shd_act_ctx_take_snapshot(ctx);
-	// TODO: handle if we can't take snapshot?
-	// FIXME: start pruning snapshots or smt to avoid running out of memory
-	
-	if (activity->on_pause != NULL) activity->on_pause(ctx);
-	ctx->state = STARTED_PAUSED;
+	if (ctx->state != STARTED_PAUSED) {
+		shd_act_ctx_take_snapshot(ctx);
+		// TODO: handle if we can't take snapshot?
+		// FIXME: start pruning snapshots or smt to avoid running out of memory
+		
+		if (activity->on_pause != NULL) activity->on_pause(ctx);
+		ctx->state = STARTED_PAUSED;
+	}
 
 	return 0;
 }
 int shd_act_ctx_start(shd_act_ctx_t* ctx) {
-	int ret = shd_act_ctx_screen_create(ctx);
+	int ret = 0;
 	shd_act_t* activity = ctx->activity;
 	
-	if (ret == 0) {
-		if (activity->on_start != NULL) activity->on_start(ctx);
-		ctx->state = STARTED_PAUSED;
-	} 
+	if (ctx->state != STARTED_PAUSED) {
+		ret = shd_act_ctx_screen_create(ctx);
+
+		if (ret == 0) {
+			if (activity->on_start != NULL) activity->on_start(ctx);
+			ctx->state = STARTED_PAUSED;
+		}
+	}
 
 	return ret;
 }
 int shd_act_ctx_stop(shd_act_ctx_t* ctx) {
-	int ret = shd_act_ctx_screen_destroy(ctx);
+	int ret = 0;
 	shd_act_t* activity = ctx->activity;
 
-	if (ret == 0) {
-		if (activity->on_stop != NULL) activity->on_stop(ctx);
-		ctx->state = CREATED_STOPPED;
+	if (ctx->state != CREATED_STOPPED) {
+		ret = shd_act_ctx_screen_destroy(ctx);
+
+		if (ret == 0) {
+			if (activity->on_stop != NULL) activity->on_stop(ctx);
+			ctx->state = CREATED_STOPPED;
+		}
 	}
 
 	return ret;
@@ -78,16 +91,20 @@ int shd_act_ctx_stop(shd_act_ctx_t* ctx) {
 int shd_act_ctx_create(shd_act_ctx_t* ctx) {
 	shd_act_t* activity = ctx->activity;
 
-	if (activity->on_create != NULL) activity->on_create(ctx);
-	ctx->state = CREATED_STOPPED;
+	if (ctx->state != CREATED_STOPPED) {
+		if (activity->on_create != NULL) activity->on_create(ctx);
+		ctx->state = CREATED_STOPPED;
+	}
 
 	return 0;
 }
 int shd_act_ctx_destroy(shd_act_ctx_t* ctx) {
 	shd_act_t* activity = ctx->activity;
 
-	if (activity->on_destroy != NULL) activity->on_destroy(ctx);
-	ctx->state = INITIALIZED_DESTROYED;
+	if (ctx->state != INITIALIZED_DESTROYED) {
+		if (activity->on_destroy != NULL) activity->on_destroy(ctx);
+		ctx->state = INITIALIZED_DESTROYED;
+	}
 
 	return 0;
 }

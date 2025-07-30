@@ -38,6 +38,37 @@ char* shd_debug_state_to_string(shd_act_state_t state) {
 	return map[state];
 }
 
+static void shd_debug_matrix_handle(lv_event_t * e) {
+	lv_obj_t* obj = lv_event_get_target_obj(e);
+	uint32_t id = lv_buttonmatrix_get_selected_button(obj);
+
+	shd_act_ctx_t* ctx = lv_event_get_user_data(e);
+	shd_debug_ctx_t* debug_ctx = ctx->activity_user;
+	lv_timer_t* timer = debug_ctx->timer;
+
+	switch (id) {
+		case 0: // Launch
+			shd_act_man_act_ctx_launch(ctx, NULL);
+			break;
+		case 1: // Kill
+			shd_act_man_act_ctx_kill(ctx);
+			break;
+		case 2: // INITIALIZED/DESTROYED
+			shd_act_ctx_state_transition(ctx, INITIALIZED_DESTROYED);
+			break;
+		case 3: // CREATED/STOPPED
+			shd_act_ctx_state_transition(ctx, CREATED_STOPPED);
+			break;
+		case 4: // STARTED/PAUSED
+			shd_act_ctx_state_transition(ctx, STARTED_PAUSED);
+			break;
+		case 5: // RESUMED
+			shd_act_ctx_state_transition(ctx, RESUMED);
+			break;
+		default:
+			break;
+	}
+}
 void shd_debug_refresh_activities(lv_timer_t* timer) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_timer_get_user_data(timer);
 	shd_act_man_ctx_t* manager = ctx->activity_ctx->manager;
@@ -88,6 +119,7 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 			lv_buttonmatrix_set_button_ctrl(matrix, 3, LV_BUTTONMATRIX_CTRL_DISABLED);
 			lv_buttonmatrix_set_button_ctrl(matrix, 4, LV_BUTTONMATRIX_CTRL_DISABLED);
 		}
+		lv_obj_add_event_cb(matrix, shd_debug_matrix_handle, LV_EVENT_VALUE_CHANGED, activity_ctx);
 
 		if (snapshot != NULL) {
 			image = lv_image_create(cont);
@@ -136,13 +168,14 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 void shd_debug_main_resume(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
 
-	ctx->timer = lv_timer_create(shd_debug_refresh_activities, 5000, ctx);
+	ctx->timer = lv_timer_create(shd_debug_refresh_activities, 1000, ctx);
 	lv_timer_ready(ctx->timer);
 }
 void shd_debug_main_pause(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
 	
 	lv_timer_delete(ctx->timer);
+	ctx->timer == NULL;
 }
 
 shd_intent_filter_t shd_debug_filter = {

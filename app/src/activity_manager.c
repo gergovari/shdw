@@ -14,6 +14,7 @@ int shd_act_man_act_ctx_display_current_add(shd_act_man_ctx_t* manager, lv_displ
 	shd_display_act_ctx_entry_node_t* node = malloc(sizeof(shd_display_act_ctx_entry_node_t));
 	
 	display = lv_display_or_default(display);
+	ctx->display = display;
 	if (node == NULL) {
 		return -ENOSR;
 	} else {
@@ -31,10 +32,12 @@ int shd_act_man_act_ctx_display_current_add(shd_act_man_ctx_t* manager, lv_displ
 
 	return 0;
 }
+// TODO: destroy, when, where?
 int shd_act_man_act_ctx_display_current_set(shd_act_man_ctx_t* manager, lv_display_t* display, shd_act_ctx_t* ctx) {
 	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
 
 	display = lv_display_or_default(display);
+	ctx->display = display;
 	while (node != NULL) {
 		if (node->value->display == display) {
 			node->value->ctx = ctx;
@@ -45,6 +48,20 @@ int shd_act_man_act_ctx_display_current_set(shd_act_man_ctx_t* manager, lv_displ
 	}
 	
 	return shd_act_man_act_ctx_display_current_add(manager, display, ctx);
+}
+lv_display_t* shd_act_man_act_ctx_display_current_find(shd_act_ctx_t* ctx) {
+	shd_act_man_ctx_t* manager = ctx->manager;
+	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
+	
+	while (node != NULL) {
+		if (node->value->ctx == ctx) {
+			return node->value->display;
+		}
+
+		node = node->prev;
+	}
+
+	return NULL;
 }
 shd_act_ctx_t* shd_act_man_act_ctx_display_current_get(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
@@ -110,28 +127,36 @@ shd_act_ctx_t* shd_act_man_act_ctx_create(shd_act_man_ctx_t* manager, shd_app_t*
 	
 	return ctx;
 }
-void shd_act_man_act_ctx_destroy(shd_act_ctx_t* ctx) {
+int shd_act_man_act_ctx_destroy(shd_act_ctx_t* ctx) {
+	int ret = 0;
+
 	shd_act_man_ctx_t* manager = ctx->manager;
 	shd_act_ctx_node_t* node = manager->activities;
 	shd_act_ctx_node_t* last_node = NULL;
 
-	while (node != NULL) {
-		if (node->value == ctx) {
-			if (last_node == NULL) {
-				manager->activities = node->prev;
-			} else {
-				last_node->prev = node->prev;
+	ret = shd_act_ctx_state_transition(ctx, INITIALIZED_DESTROYED);
+	
+	if (ret == 0) {
+		while (node != NULL) {
+			if (node->value == ctx) {
+				if (last_node == NULL) {
+					manager->activities = node->prev;
+				} else {
+					last_node->prev = node->prev;
+				}
+
+				free(node);
+				break;
 			}
 
-			free(node);
-			break;
+			last_node = node;
+			node = node->prev;
 		}
 
-		last_node = node;
-		node = node->prev;
+		free(ctx);
 	}
 
-	free(ctx);
+	return ret;
 }
 
 shd_act_man_ctx_t* shd_act_man_create(shd_apps_t* apps) {
@@ -176,13 +201,16 @@ void shd_act_man_destroy(shd_act_man_ctx_t* manager) {
 	free(manager);
 }
 
-shd_act_ctx_t* shd_act_man_act_ctx_find(shd_act_man_ctx_t* manager, shd_act_t* activity) {
+shd_act_ctx_t* shd_act_man_act_ctx_find(shd_act_man_ctx_t* manager, shd_act_t* activity, lv_display_t* display, bool any_display) {
 	shd_act_ctx_node_t* node = manager->activities;
+	shd_act_ctx_t* ctx;
+
+	display = lv_display_or_default(display);
 
 	while (node != NULL) {
-		if (node->value->activity == activity) {
-			return node->value;
-		}
+		ctx = node->value;
+
+		if (ctx->activity == activity && (display == ctx->display || any_display)) return ctx;
 
 		node = node->prev;
 	}
@@ -190,8 +218,9 @@ shd_act_ctx_t* shd_act_man_act_ctx_find(shd_act_man_ctx_t* manager, shd_act_t* a
 	return NULL;
 }
 
-int shd_act_man_act_ctx_show(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx) {
+int shd_act_man_act_ctx_show(shd_act_ctx_t* ctx) {
 	int ret = 0;
+	shd_act_man_ctx_t* manager = ctx->manager;
 
 	if (ctx->state >= STARTED_PAUSED) {
 		ret = shd_act_man_act_ctx_display_current_set(manager, lv_display_or_default(ctx->display), ctx);
@@ -202,41 +231,63 @@ int shd_act_man_act_ctx_show(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx) {
 	return ret;
 }
 
-int shd_act_man_act_ctx_launch(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx, lv_display_t* display) {
+int shd_act_man_act_ctx_launch(shd_act_ctx_t* ctx, lv_display_t* display) {
 	int ret = -1;
+	shd_act_man_ctx_t* manager = ctx->manager;
 	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, display);
+	lv_display_t* current_display = shd_act_man_act_ctx_display_current_find(ctx);
+	
+	if (current == ctx) return 0;
+	if (current_display != NULL) {
+		printf("before go back\n");
+		shd_act_man_back_go(manager, current_display);
+		printf("after go back\n");
 
+		ctx->display = display;
+		printf("before show\n");
+		shd_act_man_act_ctx_show(ctx);
+		printf("after show\n");
+	}
+	
 	if (current != NULL) shd_act_ctx_state_transition(current, STARTED_PAUSED);
 
 	ret = shd_act_ctx_state_transition(ctx, RESUMED);
-	if (ret == 0) ret = shd_act_man_act_ctx_show(manager, ctx);
+	if (ret == 0) ret = shd_act_man_act_ctx_show(ctx);
 
 	if (current != NULL) {
 		if (ret == 0) shd_act_ctx_state_transition(current, CREATED_STOPPED); else shd_act_ctx_state_transition(current, RESUMED);
 	}
 	return ret;
 }
-void shd_act_man_act_ctx_kill(shd_act_man_ctx_t* manager, shd_act_ctx_t* ctx) {
-	shd_act_ctx_state_transition(ctx, INITIALIZED_DESTROYED);
-	shd_act_man_back_go(manager, ctx->display);
-	shd_act_man_act_ctx_destroy(ctx);
+int shd_act_man_act_ctx_kill(shd_act_ctx_t* ctx) {
+	int ret = 0;
+	shd_act_man_ctx_t* manager = ctx->manager;
+	lv_display_t* display = ctx->display;
+
+	if (ctx == shd_act_man_act_ctx_display_current_get(manager, display)) ret = shd_act_man_back_go(manager, display);
+	if (ret == 0) ret = shd_act_man_act_ctx_destroy(ctx);
+
+	return ret;
 }
 
 int shd_act_man_act_launch(shd_act_man_ctx_t* manager, shd_app_t* app, shd_act_t* activity, lv_display_t* display, shd_act_result_cb_t cb, void* input, void* user) {
 	int ret = -1;
 	shd_act_ctx_t* ctx = NULL; 
 
-	if (shd_act_has_action_is(activity, ACTION_MAIN)) {
-		ctx = shd_act_man_act_ctx_find(manager, activity);
+	display = lv_display_or_default(display);
 
+	if (shd_act_has_action_is(activity, ACTION_MAIN)) {
+		ctx = shd_act_man_act_ctx_find(manager, activity, display, !shd_act_in_category_is(activity, CATEGORY_HOME));
+		
 		if (ctx != NULL) {
 			ctx->input = input;
 			ctx->return_user = user;
 		}
+
 	}
 	if (ctx == NULL) ctx = shd_act_man_act_ctx_create(manager, app, activity, display, cb, input, user);
 
-	if (ctx == NULL) ret = -ENOSYS; else ret = shd_act_man_act_ctx_launch(manager, ctx, display);
+	if (ctx == NULL) ret = -ENOSYS; else ret = shd_act_man_act_ctx_launch(ctx, display);
 	return ret;
 }
 
@@ -280,19 +331,31 @@ int shd_act_man_home_launch(shd_act_man_ctx_t* manager, lv_display_t* display) {
 
 int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	int ret = -1;
-	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, lv_display_or_default(display));
+	
+	shd_act_ctx_t* current;
 	shd_act_ctx_t* prev;
+
+	display = lv_display_or_default(display);
+	current = shd_act_man_act_ctx_display_current_get(manager, display);
 	
 	if (current != NULL) {
 		prev = current->prev;
 		
-		if (prev != NULL) {
+		if (prev == NULL) {
+			printf("prev null, go home\n");
+			ret = shd_act_man_home_go(manager, display);
+		} else {
+			printf("prev not null, go back\n");
 			ret = shd_act_ctx_state_transition(current, STARTED_PAUSED);
 			if (ret == 0) {
+				printf("state transition successful, keep go back\n");
 				ret = shd_act_ctx_state_transition(prev, RESUMED);
-				if (ret == 0) ret = shd_act_man_act_ctx_show(manager, prev);
-
+				if (ret == 0) ret = shd_act_man_act_ctx_show(prev);
+				printf("show return: %i \n", ret);
 				if (ret != 0) ret = shd_act_man_home_go(manager, display);
+				printf("show2 return: %i \n", ret);
+				
+				printf("createdstopped in goback\n");
 				shd_act_ctx_state_transition(current, CREATED_STOPPED); 
 			}
 		}
