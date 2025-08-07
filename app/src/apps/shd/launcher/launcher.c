@@ -57,7 +57,7 @@ void shd_launcher_main_start(shd_act_ctx_t* activity_ctx) {
 	
 	lv_obj_t* rand_label = lv_list_add_text(list, "random");
 
-	lv_label_set_text_fmt(rand_label, "%i (%p)", ctx->random, activity_ctx);
+	lv_label_set_text_fmt(rand_label, "%i (%p)\ndisplay: %p", ctx->random, activity_ctx, activity_ctx->display);
 	
 	intent.action = ACTION_MAIN;
 	intent.category = CATEGORY_LAUNCHER;

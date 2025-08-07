@@ -24,9 +24,7 @@ int shd_act_ctx_screen_create(shd_act_ctx_t* ctx) {
 	return 0;
 }
 int shd_act_ctx_screen_destroy(shd_act_ctx_t* ctx) {
-	Printf("shd_act_ctx_screen_destroy: %p\n", shd_act_man_act_ctx_display_current_find(ctx));
 	if (shd_act_man_act_ctx_display_current_find(ctx) == NULL) {
-		printf("%s (%p) screen delete\n", ctx->activity->id, ctx);
 		lv_obj_delete(ctx->screen);
 		ctx->screen = NULL;
 	} else return -EBUSY;
