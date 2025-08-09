@@ -25,8 +25,6 @@ LOG_MODULE_REGISTER(app);
 
 #define ENUMERATE_DISPLAY_DEVS(n) displays[n] = DEVICE_DT_GET(DT_ZEPHYR_DISPLAY(n));
 
-#define DEBUG
-
 void lv_run(const struct device** displays, size_t size) {
 	uint32_t sleep;
 
@@ -141,22 +139,15 @@ int init_devices(const struct device** displays, size_t size, lv_display_t** lv_
 	return ret;
 }
 
-int start_activities(shd_act_man_ctx_t* manager, lv_display_t** lv_displays, size_t size) {
+int start_activities(shd_act_man_ctx_t* manager, lv_display_t** displays, size_t size) {
 	int ret = 0;
-
-	ret = shd_act_man_home_launch(manager, NULL);
-	if (ret != 0) {
-		LOG_ERR("Couldn't launch CATEGORY_HOME activity!");
-	}
 	
-	#ifdef DEBUG
-	if (DT_ZEPHYR_DISPLAYS_COUNT > 1) {
-		ret = shd_act_man_debug_launch(manager, lv_displays[1]);
+	for (size_t i = 0; i < size; i++) {
+		ret = shd_act_man_home_launch(manager, displays[i]);
 		if (ret != 0) {
-			LOG_ERR("Couldn't launch CATEGORY_DEBUG activity!");
+			LOG_ERR("Couldn't launch CATEGORY_HOME activity!");
 		}
 	}
-	#endif
 	
 	return ret;
 }

@@ -1,7 +1,7 @@
 / {
 	lvgl_displays: my-displays {
 		compatible = "zephyr,displays";
-		displays = <&sdl_dc &sdl_dc2>;
+		displays = <&sdl_dc &sdl_dc2 &sdl_dc3>;
 		status = "okay";
 	};
 
@@ -9,6 +9,26 @@
 		title = "Main";
 		width = <240>;
 		height = <240>;
+		status = "okay";
+	};
+
+	sdl_dc3: sdl-dc3 {
+		compatible = "zephyr,sdl-dc";
+		title = "Main 2";
+		width = <240>;
+		height = <240>;
+		status = "okay";
+	};
+
+	input_sdl_touch3: input-sdl-touch3 {
+		compatible = "zephyr,input-sdl-touch";
+		display = <&sdl_dc3>;
+	};
+
+	lvgl_pointer3 {
+		compatible = "zephyr,lvgl-pointer-input";
+		input = <&input_sdl_touch3>;
+		display = <&sdl_dc3>;
 		status = "okay";
 	};
 

@@ -9,12 +9,6 @@
 #include "../../../activity_manager.h"
 #include "../../../intent_filter.h"
 
-typedef struct {
-	lv_timer_t* timer;
-	lv_obj_t* list;
-	shd_act_ctx_t* activity_ctx;
-} shd_debug_ctx_t;
-
 void shd_debug_back_cb(lv_event_t* e) {
 	shd_act_ctx_t* ctx = (shd_act_ctx_t*)lv_event_get_user_data(e);
 	
@@ -43,8 +37,6 @@ static void shd_debug_matrix_handle(lv_event_t * e) {
 	uint32_t id = lv_buttonmatrix_get_selected_button(obj);
 
 	shd_act_ctx_t* ctx = lv_event_get_user_data(e);
-	shd_debug_ctx_t* debug_ctx = ctx->activity_user;
-	lv_timer_t* timer = debug_ctx->timer;
 
 	switch (id) {
 		case 0: // Launch
@@ -73,22 +65,22 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_timer_get_user_data(timer);
 	shd_act_man_ctx_t* manager = ctx->activity_ctx->manager;
 
-	lv_obj_t* list = ctx->list;
+	lv_obj_t* list = ctx->act_list;
 	lv_obj_t* cont;
 	lv_obj_t* label;
 	lv_obj_t* matrix;
 	lv_obj_t* image;
-	lv_draw_buf_t* snapshot;
+	lv_draw_buf_t* snapshot = NULL;
 	static const char* matrix_map[] = {"Launch", "Kill", "\n", 
 			"INITIALIZED\nDESTROYED", "CREATED\nSTOPPED", "STARTED\nPAUSED", "RESUMED",
 			NULL};
 
 	shd_act_ctx_node_t* node = manager->activities;
-	shd_act_ctx_t* activity_ctx;
-	lv_display_t* display;
-	shd_app_t* app;
-	char* title;
-	shd_act_state_t state;
+	shd_act_ctx_t* activity_ctx = NULL;
+	lv_display_t* display = NULL;
+	shd_app_t* app = NULL;
+	char* title = NULL;
+	shd_act_state_t state = 0;
 
 	lv_obj_clean(list);
 	
@@ -107,6 +99,7 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
 		label = lv_label_create(cont);
+		if (title == NULL) title = "NULL";
 		lv_label_set_text_fmt(label, "%s (%p)\nstate: %s\ndisplay: %p", title, activity_ctx, shd_debug_state_to_string(state), display);
 		
 		matrix = lv_buttonmatrix_create(cont);
@@ -129,12 +122,54 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		node = node->prev;
 	}
 }
+void shd_debug_refresh_displays(lv_timer_t* timer) {
+	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_timer_get_user_data(timer);
+	shd_act_man_ctx_t* manager = ctx->activity_ctx->manager;
+
+	lv_obj_t* list = ctx->display_list;
+	lv_obj_t* cont;
+	lv_obj_t* label;
+
+	lv_display_t* display = lv_display_get_next(NULL);
+	shd_act_ctx_t* act_ctx;
+	char* title = NULL;
+
+	lv_obj_clean(list);
+	
+	while (display != NULL) {
+		act_ctx = shd_act_man_act_ctx_display_current_get(manager, display);
+		if (act_ctx != NULL) title = act_ctx->activity->id;
+		if (title == NULL) title = "NULL";
+
+		cont = lv_obj_create(list);
+		lv_obj_set_width(cont, lv_pct(95));
+		lv_obj_set_height(cont, LV_SIZE_CONTENT);
+		lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
+		lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+		label = lv_label_create(cont);
+		lv_label_set_text_fmt(label, "display: %p\nactivity: %s (%p)", display, title, act_ctx);
+		
+		display = lv_display_get_next(display);
+	}
+}
+void shd_debug_refresh_lists(lv_timer_t* timer) {
+	shd_debug_refresh_activities(timer);
+	shd_debug_refresh_displays(timer);
+}
 
 void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_t* screen = activity_ctx->screen;
 	
 	lv_obj_t* btn_cont = lv_obj_create(screen);
-	lv_obj_t* list = lv_obj_create(screen);
+
+	lv_obj_t* tabview = lv_tabview_create(screen);
+	
+	lv_obj_t* act_tab = lv_tabview_add_tab(tabview, "Activities");
+	lv_obj_t* act_list = lv_obj_create(act_tab);
+
+	lv_obj_t* display_tab = lv_tabview_add_tab(tabview, "Displays");
+	lv_obj_t* display_list = lv_obj_create(display_tab);
 
 	lv_obj_t* home_btn = lv_btn_create(btn_cont);
 	lv_obj_t* home_label = lv_label_create(home_btn);
@@ -145,7 +180,10 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 
 	activity_ctx->activity_user = ctx;
 	ctx->activity_ctx = activity_ctx;
-	ctx->list = list;
+	ctx->act_list = act_list;
+	ctx->display_list = display_list;
+
+	lv_obj_set_height(tabview, 1000);
 
 	lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
@@ -153,10 +191,15 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_set_flex_flow(btn_cont, LV_FLEX_FLOW_ROW_WRAP);
 	lv_obj_set_width(btn_cont, lv_pct(95));
 
-	lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
-	lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
-	lv_obj_set_width(list, lv_pct(95));
-	lv_obj_set_height(list, 1000);
+	lv_obj_set_flex_flow(act_list, LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_align(act_list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
+	lv_obj_set_width(act_list, lv_pct(95));
+	lv_obj_set_height(act_list, lv_pct(100));
+
+	lv_obj_set_flex_flow(display_list, LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_align(display_list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER);
+	lv_obj_set_width(display_list, lv_pct(95));
+	lv_obj_set_height(display_list, lv_pct(100));
 
 	lv_label_set_text(home_label, "HOME");
 	lv_obj_add_event_cb(home_btn, shd_debug_home_cb, LV_EVENT_CLICKED, activity_ctx);
@@ -168,19 +211,19 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 void shd_debug_main_resume(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
 
-	ctx->timer = lv_timer_create(shd_debug_refresh_activities, 1000, ctx);
+	ctx->timer = lv_timer_create(shd_debug_refresh_lists, 1000, ctx);
 	lv_timer_ready(ctx->timer);
 }
 void shd_debug_main_pause(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
 	
 	lv_timer_delete(ctx->timer);
-	ctx->timer == NULL;
+	ctx->timer = NULL;
 }
 
 shd_intent_filter_t shd_debug_filter = {
 	.action = ACTION_MAIN,
-	.category = CATEGORY_DEBUG
+	.category = CATEGORY_DEBUG | CATEGORY_LAUNCHER
 };
 shd_intent_filter_node_t shd_debug_intent_filter_node = { 
 	.intent_filter = &shd_debug_filter, 

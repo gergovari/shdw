@@ -84,14 +84,10 @@ lv_display_t* shd_act_man_act_ctx_display_current_find(shd_act_ctx_t* ctx) {
 	shd_act_man_ctx_t* manager = ctx->manager;
 	shd_display_act_ctx_entry_node_t* node = manager->current_activities;
 	
-	printf("--==--\n");
 	while (node != NULL) {
-		printf("%s vs %s", ctx->activity->id, node->value->ctx->activity->id);
 		if (node->value->ctx == ctx) {
-			printf(" => match (%p)\n", node->value->display);
 			return node->value->display;
 		}
-		printf("\n");
 
 		node = node->prev;
 	}
@@ -268,26 +264,35 @@ int shd_act_man_act_ctx_show(shd_act_ctx_t* ctx) {
 int shd_act_man_act_ctx_launch(shd_act_ctx_t* ctx, lv_display_t* display) {
 	int ret = -1;
 	shd_act_man_ctx_t* manager = ctx->manager;
-	shd_act_ctx_t* current = shd_act_man_act_ctx_display_current_get(manager, display);
+	shd_act_ctx_t* current;
 	lv_display_t* current_display = shd_act_man_act_ctx_display_current_find(ctx);
-	printf("for %s -> %p\n", ctx->activity->id, current_display);
 	
-	if (current == ctx) {
-		printf("%s already displayed %p\n", ctx->activity->id, display);
-		return 0;
-	};
+	display = lv_display_or_default(display);
+	current = shd_act_man_act_ctx_display_current_get(manager, display);
+
+	if (current == ctx) return 0;
+
 	if (current_display != NULL) {
+		printf("current display aint null\n");
 		ret = shd_act_man_back_go(manager, current_display);
+		printf("so lets go back: %i\n", ret);
 		
-		printf("launch %i\n", ret);
 		if (ret == 0) {
+			printf("the current prev of ctx is: %p\n", ctx->prev);
+			ctx->prev = current;
+			printf("the new prev of ctx is: %p\n", ctx->prev);
+			printf("the current display of ctx is: %p\n", ctx->display);
 			ctx->display = display;
-			shd_act_man_act_ctx_show(ctx);
+			printf("the new display of ctx is: %p\n", ctx->display);
+			ret = shd_act_man_act_ctx_show(ctx);
+			printf("lets show ctx: %i\n", ret);
 		}
 	}
 	
 	if (current != NULL) shd_act_ctx_state_transition(current, STARTED_PAUSED);
 
+	ctx->prev = current;
+	ctx->display = display;
 	ret = shd_act_ctx_state_transition(ctx, RESUMED);
 	if (ret == 0) ret = shd_act_man_act_ctx_show(ctx);
 
