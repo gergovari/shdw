@@ -299,8 +299,6 @@ int shd_act_man_act_ctx_kill(shd_act_ctx_t* ctx) {
 	shd_act_man_ctx_t* manager = ctx->manager;
 	lv_display_t* display = ctx->display;
 	
-	// FIXME: if prev is invalid we fail
-
 	if (ctx == shd_act_man_act_ctx_display_current_get(manager, display)) ret = shd_act_man_back_go(manager, display);
 	if (ret == 0) ret = shd_act_man_act_ctx_destroy(ctx);
 
@@ -378,7 +376,7 @@ int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	if (current != NULL) {
 		prev = current->prev;
 		
-		if (prev == NULL) {
+		if (prev == NULL || shd_act_man_act_ctx_display_current_find(prev) != NULL) {
 			ret = shd_act_man_home_go(manager, display);
 		} else {
 			ret = shd_act_ctx_state_transition(current, STARTED_PAUSED);
