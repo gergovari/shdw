@@ -10,15 +10,15 @@
 #include "../../../intent_filter.h"
 
 void shd_debug_back_cb(lv_event_t* e) {
-	shd_act_ctx_t* ctx = (shd_act_ctx_t*)lv_event_get_user_data(e);
+	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_event_get_user_data(e);
 	
-	shd_act_man_back_go(ctx->manager, NULL);
+	shd_act_man_back_go(ctx->activity_ctx->manager, ctx->display);
 }
 void shd_debug_home_cb(lv_event_t* e) {
-	shd_act_ctx_t* ctx = (shd_act_ctx_t*)lv_event_get_user_data(e);
+	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_event_get_user_data(e);
 
 	// TODO: handle success and error by coloring the button or smt
-	shd_act_man_home_go(ctx->manager, NULL);
+	shd_act_man_home_go(ctx->activity_ctx->manager, ctx->display);
 }
 
 char* shd_debug_state_to_string(shd_act_state_t state) {
@@ -157,10 +157,28 @@ void shd_debug_refresh_lists(lv_timer_t* timer) {
 	shd_debug_refresh_activities(timer);
 	shd_debug_refresh_displays(timer);
 }
+void shd_debug_display_change(lv_event_t* e) {
+	lv_obj_t* dropdown = lv_event_get_target_obj(e);
+	uint32_t id = lv_dropdown_get_selected(dropdown);
+	lv_display_t* display = NULL;
+	
+	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_event_get_user_data(e);
+
+	for (uint32_t i = 0; i < id; i++) {
+		display = lv_display_get_next(display);
+	}
+	
+	ctx->display = display;
+}
 
 void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_t* screen = activity_ctx->screen;
 	
+	lv_obj_t* dropdown = lv_dropdown_create(screen);
+	lv_display_t* display = lv_display_get_next(NULL);
+	size_t i = 0;
+	char title[100] = "Display: default";
+
 	lv_obj_t* btn_cont = lv_obj_create(screen);
 
 	lv_obj_t* tabview = lv_tabview_create(screen);
@@ -182,6 +200,9 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	ctx->activity_ctx = activity_ctx;
 	ctx->act_list = act_list;
 	ctx->display_list = display_list;
+	ctx->display = NULL;
+
+	lv_obj_set_width(dropdown, lv_pct(95));
 
 	lv_obj_set_height(tabview, 1000);
 
@@ -202,10 +223,20 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_set_height(display_list, lv_pct(100));
 
 	lv_label_set_text(home_label, "HOME");
-	lv_obj_add_event_cb(home_btn, shd_debug_home_cb, LV_EVENT_CLICKED, activity_ctx);
+	lv_obj_add_event_cb(home_btn, shd_debug_home_cb, LV_EVENT_CLICKED, ctx);
 
 	lv_label_set_text(back_label, "BACK");
-	lv_obj_add_event_cb(back_btn, shd_debug_back_cb, LV_EVENT_CLICKED, activity_ctx);
+	lv_obj_add_event_cb(back_btn, shd_debug_back_cb, LV_EVENT_CLICKED, ctx);
+	
+	lv_dropdown_set_options(dropdown, title);
+	while (display != NULL) {
+		snprintf(title, 100, "Display: %lu (%p)", i, display);
+		lv_dropdown_add_option(dropdown, title, i + 1);
+
+		display = lv_display_get_next(display);
+		i++;
+	}
+	lv_obj_add_event_cb(dropdown, shd_debug_display_change, LV_EVENT_VALUE_CHANGED, ctx);
 }
 
 void shd_debug_main_resume(shd_act_ctx_t* activity_ctx) {

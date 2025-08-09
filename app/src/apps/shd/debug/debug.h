@@ -12,6 +12,8 @@ typedef struct {
 	lv_obj_t* display_list;
 
 	shd_act_ctx_t* activity_ctx;
+
+	lv_display_t* display;
 } shd_debug_ctx_t;
 
 void shd_debug_main_entry(shd_act_ctx_t* ctx);

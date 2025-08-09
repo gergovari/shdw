@@ -273,19 +273,12 @@ int shd_act_man_act_ctx_launch(shd_act_ctx_t* ctx, lv_display_t* display) {
 	if (current == ctx) return 0;
 
 	if (current_display != NULL) {
-		printf("current display aint null\n");
 		ret = shd_act_man_back_go(manager, current_display);
-		printf("so lets go back: %i\n", ret);
 		
 		if (ret == 0) {
-			printf("the current prev of ctx is: %p\n", ctx->prev);
 			ctx->prev = current;
-			printf("the new prev of ctx is: %p\n", ctx->prev);
-			printf("the current display of ctx is: %p\n", ctx->display);
 			ctx->display = display;
-			printf("the new display of ctx is: %p\n", ctx->display);
 			ret = shd_act_man_act_ctx_show(ctx);
-			printf("lets show ctx: %i\n", ret);
 		}
 	}
 	
@@ -305,6 +298,8 @@ int shd_act_man_act_ctx_kill(shd_act_ctx_t* ctx) {
 	int ret = 0;
 	shd_act_man_ctx_t* manager = ctx->manager;
 	lv_display_t* display = ctx->display;
+	
+	// FIXME: if prev is invalid we fail
 
 	if (ctx == shd_act_man_act_ctx_display_current_get(manager, display)) ret = shd_act_man_back_go(manager, display);
 	if (ret == 0) ret = shd_act_man_act_ctx_destroy(ctx);
