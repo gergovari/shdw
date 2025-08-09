@@ -38,7 +38,6 @@ shd_intent_filter_result_node_t* shd_apps_intent_filter_search(shd_apps_t* apps,
 
 			while (node != NULL || intent->activity != NULL) {
 				if (intent->activity != NULL) ret = strcmp(intent->activity, activity->id) == 0;
-				if (intent->activity != NULL) printf("%s vs %s => %i\n", intent->activity, activity->id, ret);
 				
 				if (node == NULL) {
 					add = ret;
