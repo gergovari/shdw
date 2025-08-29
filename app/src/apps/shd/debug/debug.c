@@ -6,7 +6,6 @@
 
 #include <zephyr/drivers/rtc.h>
 
-#include "../../../activity_manager.h"
 #include "../../../intent_filter.h"
 
 void shd_debug_back_cb(lv_event_t* e) {
@@ -61,8 +60,7 @@ static void shd_debug_matrix_handle(lv_event_t * e) {
 			break;
 	}
 }
-void shd_debug_refresh_activities(lv_timer_t* timer) {
-	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_timer_get_user_data(timer);
+void shd_debug_refresh_activities(shd_debug_ctx_t* ctx) {
 	shd_act_man_ctx_t* manager = ctx->activity_ctx->manager;
 
 	lv_obj_t* list = ctx->act_list;
@@ -122,8 +120,7 @@ void shd_debug_refresh_activities(lv_timer_t* timer) {
 		node = node->prev;
 	}
 }
-void shd_debug_refresh_displays(lv_timer_t* timer) {
-	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)lv_timer_get_user_data(timer);
+void shd_debug_refresh_displays(shd_debug_ctx_t* ctx) {
 	shd_act_man_ctx_t* manager = ctx->activity_ctx->manager;
 
 	lv_obj_t* list = ctx->display_list;
@@ -153,9 +150,10 @@ void shd_debug_refresh_displays(lv_timer_t* timer) {
 		display = lv_display_get_next(display);
 	}
 }
-void shd_debug_refresh_lists(lv_timer_t* timer) {
-	shd_debug_refresh_activities(timer);
-	shd_debug_refresh_displays(timer);
+void shd_debug_refresh_lists(shd_debug_ctx_t* ctx) {
+	printf("cb\n");
+	shd_debug_refresh_activities(ctx);
+	shd_debug_refresh_displays(ctx);
 }
 void shd_debug_display_change(lv_event_t* e) {
 	lv_obj_t* dropdown = lv_event_get_target_obj(e);
@@ -241,15 +239,16 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 
 void shd_debug_main_resume(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
+	shd_act_man_ctx_t* manager = activity_ctx->manager;
 
-	ctx->timer = lv_timer_create(shd_debug_refresh_lists, 1000, ctx);
-	lv_timer_ready(ctx->timer);
+	ctx->event = shd_act_man_add_event_cb(manager, (shd_act_man_event_cb_t)shd_debug_refresh_lists, SHD_EVENT_ACT_MAN_CHANGED, (void*)ctx);
+	shd_debug_refresh_lists(ctx);
 }
 void shd_debug_main_pause(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
-	
-	lv_timer_delete(ctx->timer);
-	ctx->timer = NULL;
+	shd_act_man_ctx_t* manager = activity_ctx->manager;
+
+	shd_act_man_remove_event(manager, ctx->event);
 }
 
 shd_intent_filter_t shd_debug_filter = {

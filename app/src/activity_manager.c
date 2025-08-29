@@ -10,6 +10,16 @@
 
 #include "intent_filter.h"
 
+void shd_act_man_send_event(shd_act_man_ctx_t* manager, shd_act_man_event_code_t code) {
+	printf("send\n");
+	shd_act_man_event_cb_node_t* node = manager->cbs;
+
+	while (node != NULL) {
+		if (node->code == code) node->cb(node->user);
+		node = node->prev;
+	}
+}	
+
 int shd_act_man_act_ctx_display_current_add(shd_act_ctx_t* ctx) {
 	shd_act_man_ctx_t* manager = ctx->manager;
 
@@ -154,6 +164,8 @@ shd_act_ctx_t* shd_act_man_act_ctx_create(shd_act_man_ctx_t* manager, shd_app_t*
 		new->prev = manager->activities;
 		new->value = ctx;
 		manager->activities = new;
+
+		shd_act_man_send_event(manager, SHD_EVENT_ACT_MAN_CHANGED);
 	}
 	
 	return ctx;
@@ -177,6 +189,7 @@ int shd_act_man_act_ctx_destroy(shd_act_ctx_t* ctx) {
 				}
 
 				free(node);
+				shd_act_man_send_event(manager, SHD_EVENT_ACT_MAN_CHANGED);
 				break;
 			}
 
@@ -196,6 +209,7 @@ shd_act_man_ctx_t* shd_act_man_create(shd_apps_t* apps) {
 	manager->apps = apps;
 
 	manager->current_activities = NULL;
+	manager->cbs = NULL;
 	manager->activities = NULL;
 
 	return manager;
@@ -394,4 +408,41 @@ int shd_act_man_back_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
 }
 int shd_act_man_home_go(shd_act_man_ctx_t* manager, lv_display_t* display) {
 	return shd_act_man_home_launch(manager, lv_display_or_default(display));
+}
+
+int shd_act_man_remove_event(shd_act_man_ctx_t* manager, shd_act_man_event_cb_node_t* target) {
+	shd_act_man_event_cb_node_t* node = manager->cbs;
+	shd_act_man_event_cb_node_t* next = NULL;
+
+	printf("remove\n");
+
+	while (node != NULL) {
+		if (node == target) {
+			if (next != NULL) next->prev = node->prev;
+			manager->cbs = next;
+			free(node);
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
+shd_act_man_event_cb_node_t* shd_act_man_add_event_cb(shd_act_man_ctx_t* manager, 
+		shd_act_man_event_cb_t cb, shd_act_man_event_code_t code, void* user) {
+	shd_act_man_event_cb_node_t* node = malloc(sizeof(shd_act_man_event_cb_node_t));
+	
+	printf("add\n");
+
+	if (node == NULL) return NULL; else {
+		node->code = code;
+
+		node->cb = cb;
+		node->user = user;
+
+		node->prev = manager->cbs;
+		manager->cbs = node;
+	}
+	
+	return node;
 }

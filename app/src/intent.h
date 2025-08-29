@@ -10,7 +10,6 @@
 #define CATEGORY_HOME BIT64(2)
 #define CATEGORY_DEBUG BIT64(3)
 
-
 typedef int64_t shd_action_t;
 typedef int64_t shd_category_t;
 
