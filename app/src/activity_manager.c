@@ -10,14 +10,28 @@
 
 #include "intent_filter.h"
 
-void shd_act_man_send_event(shd_act_man_ctx_t* manager, shd_act_man_event_code_t code) {
-	printf("send\n");
+int shd_act_man_send_event(shd_act_man_ctx_t* manager, shd_act_man_event_code_t code) {
 	shd_act_man_event_cb_node_t* node = manager->cbs;
+	shd_act_man_event_t* event = malloc(sizeof(shd_act_man_event_t));
+	
+	if (event == NULL) {
+		return -ENOSR;
+	} else {
+		while (node != NULL) {
+			event->original_target = manager;
+			event->current_target = event->original_target;
+			event->code = node->code;
+			event->param = NULL;
+			event->user = node->user;
 
-	while (node != NULL) {
-		if (node->code == code) node->cb(node->user);
-		node = node->prev;
+			if (node->code == code) node->cb(event);
+			node = node->prev;
+		}
+
+		free(event);
 	}
+	
+	return 0;
 }	
 
 int shd_act_man_act_ctx_display_current_add(shd_act_ctx_t* ctx) {
@@ -414,8 +428,6 @@ int shd_act_man_remove_event(shd_act_man_ctx_t* manager, shd_act_man_event_cb_no
 	shd_act_man_event_cb_node_t* node = manager->cbs;
 	shd_act_man_event_cb_node_t* next = NULL;
 
-	printf("remove\n");
-
 	while (node != NULL) {
 		if (node == target) {
 			if (next != NULL) next->prev = node->prev;
@@ -432,8 +444,6 @@ shd_act_man_event_cb_node_t* shd_act_man_add_event_cb(shd_act_man_ctx_t* manager
 		shd_act_man_event_cb_t cb, shd_act_man_event_code_t code, void* user) {
 	shd_act_man_event_cb_node_t* node = malloc(sizeof(shd_act_man_event_cb_node_t));
 	
-	printf("add\n");
-
 	if (node == NULL) return NULL; else {
 		node->code = code;
 

@@ -31,7 +31,7 @@ char* shd_debug_state_to_string(shd_act_state_t state) {
 	return map[state];
 }
 
-static void shd_debug_matrix_handle(lv_event_t * e) {
+static void shd_debug_matrix_handle(lv_event_t *e) {
 	lv_obj_t* obj = lv_event_get_target_obj(e);
 	uint32_t id = lv_buttonmatrix_get_selected_button(obj);
 
@@ -151,7 +151,6 @@ void shd_debug_refresh_displays(shd_debug_ctx_t* ctx) {
 	}
 }
 void shd_debug_refresh_lists(shd_debug_ctx_t* ctx) {
-	printf("cb\n");
 	shd_debug_refresh_activities(ctx);
 	shd_debug_refresh_displays(ctx);
 }
@@ -237,11 +236,17 @@ void shd_debug_main_start(shd_act_ctx_t* activity_ctx) {
 	lv_obj_add_event_cb(dropdown, shd_debug_display_change, LV_EVENT_VALUE_CHANGED, ctx);
 }
 
+void shd_debug_handle_act_man_cb(shd_act_man_event_t* e) {
+	shd_debug_ctx_t* ctx = e->user;
+
+	shd_debug_refresh_lists(ctx);
+}
+
 void shd_debug_main_resume(shd_act_ctx_t* activity_ctx) {
 	shd_debug_ctx_t* ctx = (shd_debug_ctx_t*)activity_ctx->activity_user;
 	shd_act_man_ctx_t* manager = activity_ctx->manager;
 
-	ctx->event = shd_act_man_add_event_cb(manager, (shd_act_man_event_cb_t)shd_debug_refresh_lists, SHD_EVENT_ACT_MAN_CHANGED, (void*)ctx);
+	ctx->event = shd_act_man_add_event_cb(manager, shd_debug_handle_act_man_cb, SHD_EVENT_ACT_MAN_CHANGED, (void*)ctx);
 	shd_debug_refresh_lists(ctx);
 }
 void shd_debug_main_pause(shd_act_ctx_t* activity_ctx) {

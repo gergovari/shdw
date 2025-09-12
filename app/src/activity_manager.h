@@ -27,8 +27,18 @@ struct shd_display_act_ctx_entry_node_ts {
 typedef enum {
 	SHD_EVENT_ACT_MAN_CHANGED
 } shd_act_man_event_code_t;
-// TODO: send proper struct not just user parameter
-typedef void(*shd_act_man_event_cb_t)(void*);
+
+typedef struct {
+	void* current_target;
+	void* original_target;
+
+	shd_act_man_event_code_t code;
+
+	void* user;
+	void* param;
+} shd_act_man_event_t;
+
+typedef void(*shd_act_man_event_cb_t)(shd_act_man_event_t*);
 
 typedef struct shd_act_man_event_cb_node_ts shd_act_man_event_cb_node_t;
 struct shd_act_man_event_cb_node_ts {
