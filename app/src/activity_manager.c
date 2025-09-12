@@ -59,6 +59,7 @@ int shd_act_man_act_ctx_display_current_add(shd_act_ctx_t* ctx) {
 	}
 
 	node = malloc(sizeof(shd_display_act_ctx_entry_node_t));
+
 	if (node == NULL) {
 		return -ENOSR;
 	} else {
