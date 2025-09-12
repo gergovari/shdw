@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "intent_filter.h"
+#include "./errno.h"
 
 int shd_act_man_send_event(shd_act_man_ctx_t* manager, shd_act_man_event_code_t code) {
 	shd_act_man_event_cb_node_t* node = manager->cbs;
@@ -186,6 +187,7 @@ shd_act_ctx_t* shd_act_man_act_ctx_create(shd_act_man_ctx_t* manager, shd_app_t*
 	return ctx;
 }
 int shd_act_man_act_ctx_destroy(shd_act_ctx_t* ctx) {
+	// FIXME: if someone's prev destroyed it crashes (solution: tasks rewrite)
 	int ret = 0;
 
 	shd_act_man_ctx_t* manager = ctx->manager;
@@ -365,7 +367,7 @@ int shd_act_man_act_launch_from_intent(shd_act_man_ctx_t* manager, lv_display_t*
 
 	shd_intent_filter_result_node_t* intent_filter_result_node = shd_apps_intent_filter_search(manager->apps, (shd_intent_filter_func_t)shd_intent_filter_match_is, intent);
 
-	if (intent_filter_result_node == NULL) return -ENOSYS;
+	if (intent_filter_result_node == NULL) return -SHD_EFAILED;
 
 	// TODO: allow user to pick if multiple activities match
 	ret = shd_act_man_act_launch_from_intent_filter_result(manager, lv_display_or_default(display), intent_filter_result_node->value, cb, intent->input, intent->user);
@@ -438,7 +440,7 @@ int shd_act_man_remove_event(shd_act_man_ctx_t* manager, shd_act_man_event_cb_no
 		}
 	}
 
-	return -1;
+	return -SHD_EFAILED;
 }
 
 shd_act_man_event_cb_node_t* shd_act_man_add_event_cb(shd_act_man_ctx_t* manager, 
